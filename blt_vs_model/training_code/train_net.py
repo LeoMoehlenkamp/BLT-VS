@@ -100,6 +100,8 @@ parser.add_argument('--num_workers', type=int, default=2)
 parser.add_argument('--max_steps', type=int, default=-1)
 
 parser.add_argument('--grad_clipping', type=int, default=1)
+parser.add_argument("--ecoset_debug_subset", action="store_true")
+parser.add_argument("--ecoset_debug_size", type=int, default=500)
 
 args = parser.parse_args()
 
@@ -178,6 +180,9 @@ if hyp["dataset_mode"] == 2:
     hyp["dataset"]["name"] = "cifar100"
 elif hyp["dataset_mode"] == 1:
     hyp["dataset"]["name"] = "debug"
+
+hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
+hyp["ecoset_debug_size"] = args.ecoset_debug_size
 ##################
 ### Training and evaluation
 ##################

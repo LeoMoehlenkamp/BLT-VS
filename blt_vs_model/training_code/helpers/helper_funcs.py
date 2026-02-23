@@ -251,11 +251,18 @@ def get_Dataset_loaders(hyp, splits):
         import h5py
         from helpers.helper_funcs import calculate_class_weights_from_h5
 
+        """
         with h5py.File(dataset_path, "r") as f:
             hyp['dataset']['n_classes'] = np.max(f['val']['labels'][()]) + 1
             hyp['dataset']['class_weights'] = calculate_class_weights_from_h5(
                 f['train']['labels'][()]
             )
+        """
+        with h5py.File(dataset_path, "r") as f:
+            hyp['dataset']['n_classes'] = np.max(f['val']['labels'][()]) + 1
+
+        # DEBUG: disable class weights to avoid loading full label array
+        hyp['dataset']['class_weights'] = None
 
         transform = get_transform(hyp['dataset']['augment'], hyp)
         transform_val_test = get_transform(hyp['dataset']['augment_val_test'], hyp)
@@ -283,6 +290,24 @@ def get_Dataset_loaders(hyp, splits):
                 in_memory=0,
                 transform=transform_val_test
             )
+
+        # ---------------------------------
+        # DEBUG: limit EcoSet size
+        # ---------------------------------
+        if hyp.get("ecoset_debug_subset", False):
+
+            debug_size = hyp.get("ecoset_debug_size", 500)
+
+            if 'train' in splits:
+                train_data = torch.utils.data.Subset(train_data, range(debug_size))
+
+            if 'val' in splits:
+                val_data = torch.utils.data.Subset(val_data, range(min(debug_size, len(val_data))))
+
+            if 'test' in splits:
+                test_data = torch.utils.data.Subset(test_data, range(min(debug_size, len(test_data))))
+
+            print(f"⚠ Using EcoSet DEBUG subset of size {debug_size}")
 
 
     # ==========================================================

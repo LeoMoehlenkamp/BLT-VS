@@ -44,6 +44,7 @@ from sklearn.linear_model import LinearRegression
 import random
 from torchvision import datasets, transforms
 from collections import Counter
+from torchvision import transforms
 
 ##############################
 ## Loading the dataset loaders
@@ -114,6 +115,7 @@ def get_Dataset_loaders(hyp, splits):
 
         from torchvision.datasets import CIFAR100
         from torch.utils.data import DataLoader
+        from torchvision import transforms
 
         transform_train = transforms.Compose([
             transforms.Resize((224, 224)),

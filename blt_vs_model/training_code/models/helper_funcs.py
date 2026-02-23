@@ -102,6 +102,24 @@ def get_network_model(hyp):
         net = CORnet_S(num_classes=num_classes)
         net_name = f'{network}_dataset_{dataset}_num_{netnum}'
 
+    elif network == 'blt_vs_bottleneck':
+
+        from .blt_vs_bottleneck import BLT_VS_Bottleneck
+
+        net = BLT_VS_Bottleneck(
+            timesteps=timesteps,
+            num_classes=num_classes,
+            lateral_connections=lateral_connections,
+            topdown_connections=topdown_connections,
+            skip_connections=skip_connections,
+            bio_unroll=bio_unroll,
+            readout_type=readout_type,
+            use_bottleneck=True,
+            bottleneck_reduction=4, 
+        )
+
+        net_name = 'blt_vs_bottleneck'
+
     print(f'\nNetwork name: {net_name}')     
     
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())

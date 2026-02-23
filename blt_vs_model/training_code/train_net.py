@@ -80,7 +80,7 @@ parser.add_argument('--timesteps', type=int, default=6) # 6 is the minimum for n
 parser.add_argument('--identifier', type=int, default=1)
 parser.add_argument('--lateral_connections', type=int, default=1)
 parser.add_argument('--topdown_connections', type=int, default=1)
-parser.add_argument('--skip_connections', type=int, default=1)
+parser.add_argument('--skip_connections', type=int, default=0)
 parser.add_argument('--bio_unroll', type=int, default=0)
 parser.add_argument('--readout_type', type=str, default='multi')
 parser.add_argument(
@@ -181,6 +181,17 @@ if hyp["dataset_mode"] == 2:
 elif hyp["dataset_mode"] == 1:
     hyp["dataset"]["name"] = "debug"
 
+# --- set num_classes based on dataset ---
+if hyp["dataset"]["name"] == "cifar100":
+    hyp["dataset"]["n_classes"] = 100
+elif hyp["dataset"]["name"] == "ecoset":
+    hyp["dataset"]["n_classes"] = 565
+elif hyp["dataset"]["name"] == "debug":
+    # FakeData: n_classes muss zu deinem FakeData passen (z.B. 10 oder 100)
+    hyp["dataset"]["n_classes"] = 100
+else:
+    raise ValueError(f"Unknown dataset name: {hyp['dataset']['name']}")
+
 hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
 hyp["ecoset_debug_size"] = args.ecoset_debug_size
 ##################
@@ -209,6 +220,9 @@ if __name__ == '__main__':
 
 
     net, net_name = get_network_model(hyp)
+    print("Dataset n_classes:", hyp["dataset"]["n_classes"])
+    if hasattr(net, "num_classes"):
+        print("Model num_classes:", net.num_classes)
     net = net.float()
     # create the network
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

@@ -46,6 +46,51 @@ from torchvision import datasets, transforms
 from collections import Counter
 from torchvision import transforms
 
+class Ecoset(torch.utils.data.Dataset):
+    #Import Ecoset as a Dataset splitwise
+
+    def __init__(self, split, dataset_path, in_memory=False, transform=None):
+        """
+        Args:
+            dataset_path (string): Path to the .h5 file
+            transform (callable, optional): Optional transforms to be applied
+                on a sample.
+            in_memory: Should we pre-load the dataset?
+        """
+        self.root_dir = dataset_path
+        self.transform = transform
+        self.split = split
+        self.in_memory = in_memory
+
+        if self.in_memory:
+            with h5py.File(dataset_path, "r") as f:
+                self.images = torch.from_numpy(f[split]['data'][()]).permute((0, 3, 1, 2)) # to match the CHW expectation of pytorch
+                self.labels = torch.from_numpy(f[split]['labels'][()].astype(np.int64))
+        else:
+            self.split_data = h5py.File(dataset_path, "r")[split]
+            self.images = self.split_data['data']
+            self.labels = self.split_data['labels']
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, idx): # accepts ids and returns the images and labels transformed to the Dataloader
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        if self.in_memory:
+            imgs = self.images[idx]
+            labels = self.labels[idx]
+        else:
+            with h5py.File(self.root_dir, "r") as f:
+                imgs = torch.from_numpy(np.asarray(self.images[idx])).permute((2,0,1))    
+                labels = torch.from_numpy(np.asarray(self.labels[idx].astype(np.int64)))
+
+        if self.transform:
+            imgs = self.transform(imgs)
+
+        return imgs, labels
+
 ##############################
 ## Loading the dataset loaders
 ##############################
@@ -205,7 +250,6 @@ def get_Dataset_loaders(hyp, splits):
 
         import h5py
         from helpers.helper_funcs import calculate_class_weights_from_h5
-        from datasets.ecoset import Ecoset
         from datasets.transforms import get_transform
 
         with h5py.File(dataset_path, "r") as f:
@@ -248,7 +292,6 @@ def get_Dataset_loaders(hyp, splits):
     elif hyp['dataset']['name'] == 'imagenet':
 
         from torchvision import datasets
-        from datasets.transforms import get_transform
         from helpers.helper_funcs import calculate_class_weights_from_imagefolder
 
         dataset_path = hyp['dataset']['dataset_path'] + 'imagenet'

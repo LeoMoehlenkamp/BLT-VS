@@ -336,7 +336,6 @@ if __name__ == '__main__':
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=hyp['misc']['use_amp']):
                 outputs = net(imgs)
                 if epoch == 1 and epoch_running_init_flag == 0:
-                    print("Output shape:", outputs[0].shape)
                     print("Labels shape:", lbls.shape)
                 loss = criterion(outputs[0], lbls.long()) 
                 if len(outputs) > 1:

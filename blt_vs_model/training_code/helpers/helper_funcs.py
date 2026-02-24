@@ -238,30 +238,25 @@ def get_Dataset_loaders(hyp, splits):
     # ==========================================================
     # MODE 0 — Default EcoSet
     # ==========================================================
-    if hyp['dataset']['name'] == 'ecoset':
+    if hyp['dataset']['name'] in ['ecoset', 'miniecoset']:
 
-        print('Getting Ecoset ready!')
+        if hyp['dataset']['name'] == 'miniecoset':
+            print('Getting MiniEcoSet ready!')
+            dataset_path = "/share/klab/datasets/optimized_datasets/miniecoset.h5"
 
-        dataset_path = (
-            hyp['dataset']['dataset_path']
-            + hyp['dataset']['name']
-            + '_square256_proper_chunks.h5'
-        )
+        else:
+            print('Getting Ecoset ready!')
+            dataset_path = (
+                hyp['dataset']['dataset_path']
+                + hyp['dataset']['name']
+                + '_square256_proper_chunks.h5'
+            )
 
         import h5py
-        from helpers.helper_funcs import calculate_class_weights_from_h5
 
-        """
-        with h5py.File(dataset_path, "r") as f:
-            hyp['dataset']['n_classes'] = np.max(f['val']['labels'][()]) + 1
-            hyp['dataset']['class_weights'] = calculate_class_weights_from_h5(
-                f['train']['labels'][()]
-            )
-        """
         with h5py.File(dataset_path, "r") as f:
             hyp['dataset']['n_classes'] = np.max(f['val']['labels'][()]) + 1
 
-        # DEBUG: disable class weights to avoid loading full label array
         hyp['dataset']['class_weights'] = None
 
         transform = get_transform(hyp['dataset']['augment'], hyp)

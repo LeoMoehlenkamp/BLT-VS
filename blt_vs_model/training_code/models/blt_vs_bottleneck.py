@@ -88,13 +88,12 @@ class BLT_VS_Bottleneck(nn.Module):
         timesteps=12,
         num_classes=565,
         add_feats=100,
+        v1_v2_bottleneck_channels=144,
         lateral_connections=True,
         topdown_connections=True,
         skip_connections=True,
         bio_unroll=True,
         image_size=224,
-        use_bottleneck=False,
-        bottleneck_reduction=4,
         hook_type='None',
         readout_type='multi'
     ):
@@ -111,12 +110,11 @@ class BLT_VS_Bottleneck(nn.Module):
         self.image_size = image_size
         self.hook_type = hook_type
         self.readout_type = readout_type
+        self.v1_v2_bottleneck_channels = v1_v2_bottleneck_channels
 
         # ------------------------------
         # Bottleneck configuration
         # ------------------------------
-        self.bottleneck_layers = [3]  # Apply only to V2 (index 3)
-        self.bottleneck_reduction = 4
 
         # Names of all visual areas in the model
         self.areas = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC", "Readout"]
@@ -153,6 +151,12 @@ class BLT_VS_Bottleneck(nn.Module):
             int(num_classes + add_feats),  # Readout layer
         ]
 
+        # -------------------------------------
+        # Channel sizes used inside layers
+        # -------------------------------------
+        self.channel_sizes_for_layers = self.channel_sizes.copy()
+
+
         # Define which areas receive top-down feedback
         self.topdown_connections_layers = [
             False,  # Retina
@@ -171,14 +175,14 @@ class BLT_VS_Bottleneck(nn.Module):
         # Create BLT_VS_Layer for each area except Readout
         for idx in range(len(self.areas) - 1):
             area = self.areas[idx]
-            use_bottleneck = idx in self.bottleneck_layers
 
             self.connections[area] = BLT_VS_Layer(
                 layer_n=idx,  # index of the area
-                channel_sizes=self.channel_sizes,
+                channel_sizes=self.channel_sizes_for_layers,
                 strides=self.strides,
                 kernel_sizes=self.kernel_sizes,
                 kernel_sizes_lateral=self.kernel_sizes_lateral,
+                bottleneck_channels=self.v1_v2_bottleneck_channels,
                 paddings=self.paddings,
 
                 # Enable lateral only if globally allowed AND kernel > 0
@@ -197,8 +201,6 @@ class BLT_VS_Bottleneck(nn.Module):
 
                 image_size=image_size,
 
-                use_bottleneck=use_bottleneck,
-                bottleneck_reduction=self.bottleneck_reduction,
             )
 
         # Create final readout layer (classifier)
@@ -231,6 +233,18 @@ class BLT_VS_Bottleneck(nn.Module):
 
         # Precompute output spatial shapes for each area
         self.output_shapes = self.compute_output_shapes(image_size)
+        # =====================================
+        # Inter-Area Bottleneck: V1 → V2
+        # =====================================
+        self.v1_v2_bottleneck = nn.Sequential(
+    nn.Conv2d(
+            in_channels=self.channel_sizes[2],  # V1
+            out_channels=self.v1_v2_bottleneck_channels,
+            kernel_size=1
+        ),
+        nn.ReLU(inplace=True)
+    )
+
 
     def compute_output_shapes(self, image_size):
         """
@@ -327,6 +341,7 @@ class BLT_VS_Bottleneck(nn.Module):
         and top-down feedback. Without this method, the architecture defined
         in __init__ would only exist structurally — no image would be processed.
         """
+    
 
         # Ensure input image has correct spatial size
         if img_input.size(2) != self.image_size or img_input.size(3) != self.image_size:
@@ -389,21 +404,52 @@ class BLT_VS_Bottleneck(nn.Module):
                     )
 
                     if should_update:
-                        # Compute BU and TD outputs for this area
+
+                        # -------------------------------------------------
+                        # Bottom-up input
+                        # -------------------------------------------------
+                        bu_input = bu_activations_old[idx]
+
+                        # Apply inter-area bottleneck ONLY for V1 → V2
+                        # (V1 index = 2, V2 index = 3 → area == "V2")
+                        if area == "V2" and isinstance(bu_input, torch.Tensor):
+                            bu_input = self.v1_v2_bottleneck(bu_input)
+
+                        # -------------------------------------------------
+                        # Forward through area
+                        # -------------------------------------------------
                         bu_act, td_act = self.connections[area](
-                            bu_input=bu_activations_old[idx],
+                            bu_input=bu_input,
                             bu_l_input=bu_activations_old[idx + 1],
                             td_input=td_activations_old[idx + 2],
                             td_l_input=td_activations_old[idx + 1],
-                            bu_skip_input=bu_activations_old[2]
-                            if (idx + 1) == 5 else None,
-                            td_skip_input=td_activations_old[5]
-                            if (idx + 1) == 2 else None,
+                            bu_skip_input=bu_activations_old[2] if (idx + 1) == 5 else None,
+                            td_skip_input=td_activations_old[5] if (idx + 1) == 2 else None,
                         )
 
                         # Store new activations
                         bu_activations[idx + 1] = bu_act
                         td_activations[idx + 1] = td_act
+
+                        # ================= SANITY CHECK 2 =================
+                        if t == 1 and area == "V2":
+                            print("\n[Sanity Check 2] V1->V2 BU shapes (after V2 update)")
+                            print("V1 BU:", None if bu_activations[2] is None else bu_activations[2].shape)
+                            print("V2 BU:", None if bu_activations[3] is None else bu_activations[3].shape)
+                        # ==================================================
+
+                        # Store new activations
+                        bu_activations[idx + 1] = bu_act
+                        td_activations[idx + 1] = td_act
+
+                        # ================= SANITY CHECK 2 (prints once when V2 first becomes available) =================
+                        if area == "V2" and bu_act is not None and not hasattr(self, "_sanity2_done"):
+                            self._sanity2_done = True
+                            print("\n[Sanity Check 2] V1 -> V2 (first time V2 updates)")
+                            print("t =", t)
+                            print("V1 input to V2 shape (bu_input):", bu_activations_old[idx].shape if bu_activations_old[idx] is not None else None)
+                            print("V2 output shape (bu_act):", bu_act.shape)
+                        # ===============================================================================================
 
                 # Move current activations to old for next timestep
                 bu_activations_old = bu_activations[:]
@@ -436,10 +482,24 @@ class BLT_VS_Bottleneck(nn.Module):
             bu_activations[0], _ = self.connections["Retina"](bu_input=img_input)
 
             for idx, area in enumerate(self.areas[1:-1]):
+
+                # -----------------------------------------
+                # Bottom-up input
+                # -----------------------------------------
+                bu_input = bu_activations[idx]
+
+                # Apply inter-area bottleneck ONLY for V1 → V2
+                if area == "V2" and isinstance(bu_input, torch.Tensor):
+                    bu_input = self.v1_v2_bottleneck(bu_input)
+
+                # -----------------------------------------
+                # Forward pass through area
+                # -----------------------------------------
                 bu_act, _ = self.connections[area](
-                    bu_input=bu_activations[idx],
+                    bu_input=bu_input,
                     bu_skip_input=bu_activations[2] if idx + 1 == 5 else None,
                 )
+
                 bu_activations[idx + 1] = bu_act
 
             # Compute initial readout
@@ -648,140 +708,140 @@ class BLT_VS_Bottleneck(nn.Module):
         # Return possibly updated activation dictionary
         return activations
 
-def collect_activation(
-    self, bu_activation, td_activation, bu_flag, td_flag, concat, area_idx, batch_size
-):
-    """
-    Helper function to collect activations, handling None values and concatenation.
+    def collect_activation(
+        self, bu_activation, td_activation, bu_flag, td_flag, concat, area_idx, batch_size
+    ):
+        """
+        Helper function to collect activations, handling None values and concatenation.
 
-    Parameters:
-    -----------
-    bu_activation : torch.Tensor or None
-        Bottom-up activation.
-    td_activation : torch.Tensor or None
-        Top-down activation.
-    bu_flag : bool
-        Whether to collect BU activations.
-    td_flag : bool
-        Whether to collect TD activations.
-    concat : bool
-        Whether to concatenate BU and TD activations.
-    area_idx : int
-        Index of the area in self.areas.
-    batch_size : int
-        Batch size of the input data.
+        Parameters:
+        -----------
+        bu_activation : torch.Tensor or None
+            Bottom-up activation.
+        td_activation : torch.Tensor or None
+            Top-down activation.
+        bu_flag : bool
+            Whether to collect BU activations.
+        td_flag : bool
+            Whether to collect TD activations.
+        concat : bool
+            Whether to concatenate BU and TD activations.
+        area_idx : int
+            Index of the area in self.areas.
+        batch_size : int
+            Batch size of the input data.
 
-    Returns:
-    --------
-    activation : torch.Tensor or dict
-        The collected activation. If concat is True, returns a single tensor.
-        If concat is False, returns a dict with keys 'bu' and/or 'td'.
+        Returns:
+        --------
+        activation : torch.Tensor or dict
+            The collected activation. If concat is True, returns a single tensor.
+            If concat is False, returns a dict with keys 'bu' and/or 'td'.
 
-    Why this is needed:
-    -------------------
-    During recurrent computation, some areas may not yet have valid
-    bottom-up or top-down activations (they may be None).
-    This function guarantees that activation extraction never crashes
-    by safely replacing missing activations with zero tensors of the
-    correct shape. It also standardizes how BU and TD activations are
-    returned (either concatenated or separate), ensuring consistent
-    behavior for analysis and visualization.
-    """
+        Why this is needed:
+        -------------------
+        During recurrent computation, some areas may not yet have valid
+        bottom-up or top-down activations (they may be None).
+        This function guarantees that activation extraction never crashes
+        by safely replacing missing activations with zero tensors of the
+        correct shape. It also standardizes how BU and TD activations are
+        returned (either concatenated or separate), ensuring consistent
+        behavior for analysis and visualization.
+        """
 
-    # Determine the device (CPU or GPU) where the model parameters live
-    # This ensures created zero tensors are placed on the correct device
-    device = next(self.parameters()).device  
+        # Determine the device (CPU or GPU) where the model parameters live
+        # This ensures created zero tensors are placed on the correct device
+        device = next(self.parameters()).device  
 
-    # ======================================================
-    # CONCAT MODE (Return a single tensor)
-    # ======================================================
-    if concat:
+        # ======================================================
+        # CONCAT MODE (Return a single tensor)
+        # ======================================================
+        if concat:
 
-        # Case 1: Both BU and TD are None
-        # → create a zero tensor with correct spatial and channel size
-        if bu_activation is None and td_activation is None:
+            # Case 1: Both BU and TD are None
+            # → create a zero tensor with correct spatial and channel size
+            if bu_activation is None and td_activation is None:
 
-            # Channel size doubled because we concatenate BU and TD
-            channels = self.channel_sizes[area_idx] * 2  
+                # Channel size doubled because we concatenate BU and TD
+                channels = self.channel_sizes[area_idx] * 2  
 
-            # Get spatial resolution for this area
-            height, width = self.output_shapes[area_idx]
-
-            # Create zero tensor of expected shape
-            zeros = torch.zeros(
-                (batch_size, channels, height, width),
-                device=device
-            )
-            return zeros
-
-        # Case 2: BU is missing → replace with zeros shaped like TD
-        if bu_activation is None:
-            bu_activation = torch.zeros_like(td_activation)
-
-        # Case 3: TD is missing → replace with zeros shaped like BU
-        if td_activation is None:
-            td_activation = torch.zeros_like(bu_activation)
-
-        # Concatenate along channel dimension (dim=1)
-        activation = torch.cat([bu_activation, td_activation], dim=1)
-
-        return activation
-
-    # ======================================================
-    # SEPARATE MODE (Return dictionary with 'bu' and/or 'td')
-    # ======================================================
-    else:
-
-        activation = {}
-
-        # ---------------------------
-        # Handle Bottom-Up (BU)
-        # ---------------------------
-        if bu_flag:
-
-            # If BU exists, use it directly
-            if bu_activation is not None:
-                activation['bu'] = bu_activation
-
-            # If BU is missing but TD exists,
-            # create zero tensor shaped like TD
-            elif td_activation is not None:
-                activation['bu'] = torch.zeros_like(td_activation)
-
-            # If both are None → create zero tensor from scratch
-            else:
-                channels = self.channel_sizes[area_idx]
+                # Get spatial resolution for this area
                 height, width = self.output_shapes[area_idx]
 
-                activation['bu'] = torch.zeros(
+                # Create zero tensor of expected shape
+                zeros = torch.zeros(
                     (batch_size, channels, height, width),
                     device=device
                 )
+                return zeros
 
-        # ---------------------------
-        # Handle Top-Down (TD)
-        # ---------------------------
-        if td_flag:
+            # Case 2: BU is missing → replace with zeros shaped like TD
+            if bu_activation is None:
+                bu_activation = torch.zeros_like(td_activation)
 
-            # If TD exists, use it directly
-            if td_activation is not None:
-                activation['td'] = td_activation
+            # Case 3: TD is missing → replace with zeros shaped like BU
+            if td_activation is None:
+                td_activation = torch.zeros_like(bu_activation)
 
-            # If TD missing but BU exists → create zero tensor shaped like BU
-            elif bu_activation is not None:
-                activation['td'] = torch.zeros_like(bu_activation)
+            # Concatenate along channel dimension (dim=1)
+            activation = torch.cat([bu_activation, td_activation], dim=1)
 
-            # If both are None → create zero tensor from scratch
-            else:
-                channels = self.channel_sizes[area_idx]
-                height, width = self.output_shapes[area_idx]
+            return activation
 
-                activation['td'] = torch.zeros(
-                    (batch_size, channels, height, width),
-                    device=device
-                )
+        # ======================================================
+        # SEPARATE MODE (Return dictionary with 'bu' and/or 'td')
+        # ======================================================
+        else:
 
-        return activation
+            activation = {}
+
+            # ---------------------------
+            # Handle Bottom-Up (BU)
+            # ---------------------------
+            if bu_flag:
+
+                # If BU exists, use it directly
+                if bu_activation is not None:
+                    activation['bu'] = bu_activation
+
+                # If BU is missing but TD exists,
+                # create zero tensor shaped like TD
+                elif td_activation is not None:
+                    activation['bu'] = torch.zeros_like(td_activation)
+
+                # If both are None → create zero tensor from scratch
+                else:
+                    channels = self.channel_sizes[area_idx]
+                    height, width = self.output_shapes[area_idx]
+
+                    activation['bu'] = torch.zeros(
+                        (batch_size, channels, height, width),
+                        device=device
+                    )
+
+            # ---------------------------
+            # Handle Top-Down (TD)
+            # ---------------------------
+            if td_flag:
+
+                # If TD exists, use it directly
+                if td_activation is not None:
+                    activation['td'] = td_activation
+
+                # If TD missing but BU exists → create zero tensor shaped like BU
+                elif bu_activation is not None:
+                    activation['td'] = torch.zeros_like(bu_activation)
+
+                # If both are None → create zero tensor from scratch
+                else:
+                    channels = self.channel_sizes[area_idx]
+                    height, width = self.output_shapes[area_idx]
+
+                    activation['td'] = torch.zeros(
+                        (batch_size, channels, height, width),
+                        device=device
+                    )
+
+            return activation
 
 
 
@@ -836,15 +896,10 @@ class BLT_VS_Layer(nn.Module):
         topdown_connections=True,
         skip_connections_bu=False,
         skip_connections_td=False,
+        bottleneck_channels=None,
         image_size=224,
-        use_bottleneck=False,
-        bottleneck_reduction=4,
     ):
         super(BLT_VS_Layer, self).__init__()
-        self.use_bottleneck = use_bottleneck
-        if self.use_bottleneck:
-            print(f"Bottleneck active in layer {layer_n}")
-        self.bottleneck_reduction = bottleneck_reduction
 
         # --------------------------------------------------
         # Determine input and output channel sizes
@@ -852,7 +907,12 @@ class BLT_VS_Layer(nn.Module):
 
         # First layer (Retina) receives RGB input → 3 channels
         # All other layers receive previous layer's channels
-        in_channels = 3 if layer_n == 0 else channel_sizes[layer_n - 1]
+        if layer_n == 0:
+            in_channels = 3
+        elif layer_n == 3 and bottleneck_channels is not None:
+            in_channels = bottleneck_channels
+        else:
+            in_channels = channel_sizes[layer_n - 1]
 
         # Output channels defined by architecture configuration
         out_channels = channel_sizes[layer_n]
@@ -861,29 +921,13 @@ class BLT_VS_Layer(nn.Module):
         # Bottom-Up Convolution (with optional bottleneck)
         # --------------------------------------------------
 
-        if self.use_bottleneck:
-            reduced_channels = max(1, in_channels // self.bottleneck_reduction)
-
-            self.bu_conv = nn.Sequential(
-                nn.Conv2d(in_channels, reduced_channels, kernel_size=1),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(
-                    reduced_channels,
-                    out_channels,
-                    kernel_size=kernel_sizes[layer_n],
-                    stride=strides[layer_n],
-                    padding=paddings[layer_n],
-                ),
-            )
-        else:
-            self.bu_conv = nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=out_channels,
-                kernel_size=kernel_sizes[layer_n],
-                stride=strides[layer_n],
-                padding=paddings[layer_n],
-            )
-
+        self.bu_conv = nn.Conv2d(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=kernel_sizes[layer_n],
+        stride=strides[layer_n],
+        padding=paddings[layer_n],
+    )
 
         # --------------------------------------------------
         # Lateral Connections (within-area recurrence)
@@ -1031,14 +1075,14 @@ class BLT_VS_Layer(nn.Module):
         self.layer_norm_td = nn.GroupNorm(num_groups=1, num_channels=out_channels)
 
     def forward(
-        self,
-        bu_input,
-        bu_l_input=None,
-        td_input=None,
-        td_l_input=None,
-        bu_skip_input=None,
-        td_skip_input=None,
-    ):
+    self,
+    bu_input,
+    bu_l_input=None,
+    td_input=None,
+    td_l_input=None,
+    bu_skip_input=None,
+    td_skip_input=None,
+):
         """
         Forward pass for a single BLT_VS layer.
 
@@ -1059,9 +1103,9 @@ class BLT_VS_Layer(nn.Module):
 
         Returns:
         --------
-        bu_output : torch.Tensor
+        bu_output : torch.Tensor or None
             Bottom-up output tensor.
-        td_output : torch.Tensor
+        td_output : torch.Tensor or None
             Top-down output tensor.
 
         Why this is needed:
@@ -1069,125 +1113,135 @@ class BLT_VS_Layer(nn.Module):
         This function defines the core computation of one cortical area.
         It integrates bottom-up input, lateral recurrence, top-down feedback,
         and optional skip connections. The key biological mechanism implemented
-        here is multiplicative gating: bottom-up signals are modulated by
-        top-down signals and vice versa. This interaction allows higher areas
-        to dynamically refine and control lower-level representations over time.
+        here is multiplicative gating: bottom-up signals are modulated by top-down
+        signals and vice versa.
         """
+
+        # If absolutely no signal arrives: nothing to compute
+        if (
+            bu_input is None
+            and bu_l_input is None
+            and td_input is None
+            and td_l_input is None
+            and bu_skip_input is None
+            and td_skip_input is None
+        ):
+            return None, None
+
+        # -----------------------------
+        # Helpers (avoid int zeros!)
+        # -----------------------------
+        def _sum_tensors(*xs):
+            xs = [x for x in xs if isinstance(x, torch.Tensor)]
+            if len(xs) == 0:
+                return None
+            out = xs[0]
+            for x in xs[1:]:
+                out = out + x
+            return out
+
+        def _ref_tensor_for_output_size():
+            # Prefer already-processed BU (most reliable)
+            if isinstance(bu_processed, torch.Tensor):
+                return bu_processed
+            # Otherwise fall back to any BU-shaped source we have
+            for x in (bu_l_input, bu_skip_input, td_l_input, td_skip_input):
+                if isinstance(x, torch.Tensor):
+                    return x
+            return None
 
         # ======================================================
         # Process Bottom-Up Input (feedforward pathway)
         # ======================================================
-
-        # If BU input exists, apply bottom-up convolution
-        # Otherwise return 0 (no signal yet)
-        bu_processed = self.bu_conv(bu_input) if bu_input is not None else 0
+        bu_processed = self.bu_conv(bu_input) if bu_input is not None else None
 
         # ======================================================
         # Process Top-Down Input (feedback pathway)
         # ======================================================
-
-        # If TD input exists, apply transposed convolution (upsampling)
-        # Ensure output matches BU spatial size
-        td_processed = (
-            self.td_conv(td_input, output_size=bu_processed.size())
-            if td_input is not None
-            else 0
-        )
+        if td_input is not None:
+            ref = _ref_tensor_for_output_size()
+            # If we have a reference tensor, force spatial size match
+            if ref is not None:
+                td_processed = self.td_conv(td_input, output_size=ref.size())
+            else:
+                # Fallback: run without output_size (should still return a tensor)
+                td_processed = self.td_conv(td_input)
+        else:
+            td_processed = None
 
         # ======================================================
         # Process Bottom-Up Lateral Input (within-area recurrence)
         # ======================================================
-
-        # Apply depthwise + pointwise conv if lateral signal exists
         bu_l_processed = (
             self.bu_l_conv_pointwise(self.bu_l_conv_depthwise(bu_l_input))
             if bu_l_input is not None
-            else 0
+            else None
         )
 
         # ======================================================
         # Process Top-Down Lateral Input
         # ======================================================
-
         td_l_processed = (
             self.td_l_conv_pointwise(self.td_l_conv_depthwise(td_l_input))
             if td_l_input is not None
-            else 0
+            else None
         )
 
         # ======================================================
         # Process Skip Connections
         # ======================================================
-
         skip_bu_processed = (
             self.skip_bu_pointwise(self.skip_bu_depthwise(bu_skip_input))
             if bu_skip_input is not None
-            else 0
+            else None
         )
-
         skip_td_processed = (
             self.skip_td_pointwise(self.skip_td_depthwise(td_skip_input))
             if td_skip_input is not None
-            else 0
+            else None
         )
 
         # ======================================================
-        # Combine Signals
+        # Combine Signals (only sum tensors; never ints)
         # ======================================================
+        bu_drive = _sum_tensors(bu_processed, bu_l_processed, skip_bu_processed)
+        bu_mod   = _sum_tensors(bu_processed, skip_bu_processed)
 
-        # BU drive = all bottom-up sources
-        bu_drive = bu_processed + bu_l_processed + skip_bu_processed
+        td_drive = _sum_tensors(td_processed, td_l_processed, skip_td_processed)
+        td_mod   = _sum_tensors(td_processed, skip_td_processed)
 
-        # BU modulator = only main BU pathway (used to modulate TD)
-        bu_mod = bu_processed + skip_bu_processed
-
-        # TD drive = all top-down sources
-        td_drive = td_processed + td_l_processed + skip_td_processed
-
-        # TD modulator = main TD pathway (used to modulate BU)
-        td_mod = td_processed + skip_td_processed
+        # If nothing produced a tensor -> skip update
+        if bu_drive is None and td_drive is None:
+            return None, None
 
         # ======================================================
         # Compute Bottom-Up Output (Gated by Top-Down)
         # ======================================================
-
-        if isinstance(td_mod, torch.Tensor):
-
-            if isinstance(bu_drive, torch.Tensor):
-
-                # Core biological gating:
-                # ReLU(bu_drive) scaled by sigmoid(td_mod)
-                bu_output = F.relu(bu_drive) * 2 * torch.sigmoid(td_mod)
-
-            else:
-                # If no BU drive but TD exists → output zeros
-                bu_output = torch.zeros_like(td_mod)
-
+        if bu_drive is None:
+            # No BU drive: if TD exists, output zeros with TD shape; else None
+            bu_output = torch.zeros_like(td_mod) if isinstance(td_mod, torch.Tensor) else None
+        elif isinstance(td_mod, torch.Tensor):
+            bu_output = F.relu(bu_drive) * 2.0 * torch.sigmoid(td_mod)
         else:
-            # If no TD modulation → standard ReLU
             bu_output = F.relu(bu_drive)
 
         # ======================================================
         # Compute Top-Down Output (Gated by Bottom-Up)
         # ======================================================
-
-        if isinstance(bu_mod, torch.Tensor):
-
-            if isinstance(td_drive, torch.Tensor):
-
-                # Symmetric gating mechanism
-                td_output = F.relu(td_drive) * 2 * torch.sigmoid(bu_mod)
-
-            else:
-                td_output = torch.zeros_like(bu_mod)
-
+        if td_drive is None:
+            td_output = torch.zeros_like(bu_mod) if isinstance(bu_mod, torch.Tensor) else None
+        elif isinstance(bu_mod, torch.Tensor):
+            td_output = F.relu(td_drive) * 2.0 * torch.sigmoid(bu_mod)
         else:
             td_output = F.relu(td_drive)
+
+        # If either side is missing -> return None,None (prevents GroupNorm crash)
+        if bu_output is None or td_output is None:
+            return None, None
 
         # ======================================================
         # Normalize Outputs
         # ======================================================
-
         bu_output = self.layer_norm_bu(bu_output)
         td_output = self.layer_norm_td(td_output)
 

@@ -244,8 +244,13 @@ if __name__ == '__main__':
 
     # Print the number of FLOPs for one pass
     if not args.network == 'blt_vnet':
-        print("\nFLOPs for one pass: {}\n".format(calculate_flops(net, torch.randn(1, 3, 128, 128) if args.network == 'vNet' else torch.randn(1, 3, 224, 224))))
+        if args.bio_unroll == 1:
+            print("\nSkipping FLOPs computation because bio_unroll=1 (thop/profile can break on this forward path).\n")
+        else:
+            dummy = torch.randn(1, 3, 128, 128) if args.network == 'vNet' else torch.randn(1, 3, 224, 224)
+            print("\nFLOPs for one pass: {}\n".format(calculate_flops(net, dummy)))
         net.train()
+
     print(net)
 
     # Use DataParallel for multi-GPU training

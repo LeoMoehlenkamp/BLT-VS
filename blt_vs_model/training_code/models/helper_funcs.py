@@ -114,8 +114,6 @@ def get_network_model(hyp):
             skip_connections=skip_connections,
             bio_unroll=bio_unroll,
             readout_type=readout_type,
-            use_bottleneck=True,
-            bottleneck_reduction=4, 
         )
 
         net_name = 'blt_vs_bottleneck'
@@ -125,6 +123,21 @@ def get_network_model(hyp):
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f"\nThe network has {params} trainable parameters\n")
+    # ================= SANITY CHECK 1 =================
+    if network == "blt_vs_bottleneck":
+        print("\n[Sanity Check 1] V2 bu_conv structure:")
+        print(net.connections["V2"].bu_conv)
+
+        v2_params = sum(p.numel() for p in net.connections["V2"].bu_conv.parameters())
+        print("[Sanity Check 1] V2 bu_conv param count:", v2_params)
+    # ==================================================
+
+    # ================= SANITY CHECK 3 =================
+    if network == "blt_vs_bottleneck":
+        print("\n[Sanity Check 3] Layer types:")
+        for area in ["V1", "V2", "V3"]:
+            print(area, "->", type(net.connections[area].bu_conv))
+    # ==================================================
 
     return net, net_name
 

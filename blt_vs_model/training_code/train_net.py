@@ -98,7 +98,7 @@ parser.add_argument('--learning_rate', type=float, default=1e-3)
 parser.add_argument('--start_from_epoch', type=int, default=0)
 parser.add_argument('--num_workers', type=int, default=2)
 parser.add_argument('--max_steps', type=int, default=-1)
-
+parser.add_argument('--bottlenecks', type=str, default='', help='comma list like "V1->V2:144,V2->V3:160"')
 parser.add_argument('--grad_clipping', type=int, default=1)
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
@@ -194,6 +194,27 @@ else:
 
 hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
 hyp["ecoset_debug_size"] = args.ecoset_debug_size
+# -----------------------------
+# Modular bottlenecks config
+# -----------------------------
+def parse_bottlenecks(s: str):
+    s = (s or "").strip()
+    if s == "":
+        return {}
+    out = {}
+    for item in s.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        edge, ch = item.split(":")
+        out[edge.strip()] = int(ch.strip())
+    return out
+
+hyp["network"]["bottlenecks"] = parse_bottlenecks(args.bottlenecks)
+print("Bottlenecks:", hyp["network"]["bottlenecks"])
+
+# Beispiel: V1->V2 aktiv mit 144 Channels
+# hyp["network"]["bottlenecks"] = {"V1->V2": 144}
 ##################
 ### Training and evaluation
 ##################

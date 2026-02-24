@@ -104,9 +104,9 @@ def get_network_model(hyp):
 
     elif network == 'blt_vs_bottleneck':
 
-        from .blt_vs_bottleneck import BLT_VS_Bottleneck
+        from .blt_vs_bottleneck import BLT_VS_ModularBottlenecks
 
-        net = BLT_VS_Bottleneck(
+        net = BLT_VS_ModularBottlenecks(
             timesteps=timesteps,
             num_classes=num_classes,
             lateral_connections=lateral_connections,
@@ -114,9 +114,10 @@ def get_network_model(hyp):
             skip_connections=skip_connections,
             bio_unroll=bio_unroll,
             readout_type=readout_type,
+            bottlenecks=hyp["network"].get("bottlenecks", {})
         )
 
-        net_name = 'blt_vs_bottleneck'
+        net_name = f'{network}_dataset_{dataset}_num_{netnum}'
 
     print(f'\nNetwork name: {net_name}')     
     

@@ -499,6 +499,8 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                         bu_activations[idx + 1] = bu_act
                         td_activations[idx + 1] = td_act
 
+
+                        """
                         # ================= SANITY CHECK 2 =================
                         if t == 1 and area == "V2":
                             print("\n[Sanity Check 2] V1->V2 BU shapes (after V2 update)")
@@ -518,7 +520,9 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                             print("V1 input to V2 shape (bu_input):", bu_activations_old[idx].shape if bu_activations_old[idx] is not None else None)
                             print("V2 output shape (bu_act):", bu_act.shape)
                         # ===============================================================================================
+                        """
 
+                        
                 # Move current activations to old for next timestep
                 bu_activations_old = bu_activations[:]
                 td_activations_old = td_activations[:]

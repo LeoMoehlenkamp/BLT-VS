@@ -81,7 +81,7 @@ parser.add_argument('--identifier', type=int, default=1)
 parser.add_argument('--lateral_connections', type=int, default=1)
 parser.add_argument('--topdown_connections', type=int, default=1)
 parser.add_argument('--skip_connections', type=int, default=0)
-parser.add_argument('--bio_unroll', type=int, default=0)
+parser.add_argument('--bio_unroll', type=int, default=1)
 parser.add_argument('--readout_type', type=str, default='multi')
 parser.add_argument(
     "--dataset_mode",
@@ -235,7 +235,7 @@ if __name__ == '__main__':
     train_loader, val_loader, _, hyp = get_Dataset_loaders(hyp,['train','val'])
 
     print("Dataset mode:", hyp["dataset_mode"])
-    print("Number of classes:", hyp["dataset"]["n_classes"])
+    #print("Number of classes:", hyp["dataset"]["n_classes"])
     print("Train dataset size:", len(train_loader.dataset))
     print("Number of train batches:", len(train_loader))
 
@@ -273,6 +273,7 @@ if __name__ == '__main__':
         net.train()
 
     print(net)
+    #print(net.bottlenecks)
 
     # Use DataParallel for multi-GPU training
     if torch.cuda.device_count() > 1:
@@ -283,7 +284,7 @@ if __name__ == '__main__':
     # criterion and optimizer setup
     criterion = nn.CrossEntropyLoss(weight=hyp['dataset']['class_weights'], label_smoothing=0.1)
     optimizer = get_optimizer(hyp,net)
-    scaler = torch.cuda.amp.GradScaler(enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
+    scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
 
     # LR scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, threshold=1e-2, verbose=True) # usual scheduler
     lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=2) # 1% change necessary in 5 epochs, for 2 epochs straight, else drop lr by 1/5

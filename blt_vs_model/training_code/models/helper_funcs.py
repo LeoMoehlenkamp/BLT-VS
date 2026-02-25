@@ -104,7 +104,7 @@ def get_network_model(hyp):
 
     elif network == 'blt_vs_bottleneck':
 
-        from .blt_vs_bottleneck import BLT_VS_ModularBottlenecks
+        from .blt_vs_bottleneck_modular import BLT_VS_ModularBottlenecks
 
         net = BLT_VS_ModularBottlenecks(
             timesteps=timesteps,
@@ -124,6 +124,8 @@ def get_network_model(hyp):
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
     params = sum([np.prod(p.size()) for p in model_parameters])
     print(f"\nThe network has {params} trainable parameters\n")
+    
+    """
     # ================= SANITY CHECK 1 =================
     if network == "blt_vs_bottleneck":
         print("\n[Sanity Check 1] V2 bu_conv structure:")
@@ -139,7 +141,7 @@ def get_network_model(hyp):
         for area in ["V1", "V2", "V3"]:
             print(area, "->", type(net.connections[area].bu_conv))
     # ==================================================
-
+    """
     return net, net_name
 
 ##################################

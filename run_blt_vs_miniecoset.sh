@@ -6,7 +6,6 @@
 #SBATCH --cpus-per-task=12
 #SBATCH --mem=32G
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="A100|H100.80gb"
 #SBATCH --time=24:00:00
 #SBATCH --output=logs/blt_vs_%j.out
 #SBATCH --error=logs/blt_vs_%j.err

@@ -1,9 +1,13 @@
 #!/bin/bash
-#SBATCH -p klab-cpu
-#SBATCH -t 0-12:00:00
-#SBATCH --mem=64G
-#SBATCH -c 8
-#SBATCH --nodelist klab-2
+#SBATCH --time=1:00:00 # Run time
+#SBATCH --nodes 1  # Number of reaquested nodes
+#SBATCH --mem 1G
+#SBATCH -c 10
+#SBATCH -p klab-l40s
+#SBATCH --gres=gpu:1
+#SBTACH --job-name=BLT
+#SBATCH --error=logs/%x_%j.out
+#SBATCH --output=logs/%x_%j.err
 
 spack load miniconda3
 spack load git

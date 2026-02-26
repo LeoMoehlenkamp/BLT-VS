@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --time=12:00:00 # Run time
-#SBATCH --nodes 1  # Number of reaquested nodes
-#SBATCH --mem 64G
-#SBATCH -c 10
-#SBATCH -p klab-l40s
+#SBATCH --partition=gpu
+#SBATCH --nodes=1
+#SBATCH -c 12
+#SBATCH --mem=32G
 #SBATCH --gres=gpu:1
-#SBATCH --constraint="A100|H100.80gb"
-#SBTACH --job-name=BLT
-#SBATCH --error=logs/%x_%j.err
+#SBATCH --constraint=A100|H100.80gb
+#SBATCH --time=24:00:00
+#SBATCH --job-name=BLT
 #SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
 
 spack load miniconda3
 spack load git

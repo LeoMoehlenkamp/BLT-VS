@@ -5,6 +5,7 @@
 #SBATCH -c 10
 #SBATCH -p klab-l40s
 #SBATCH --gres=gpu:1
+#SBATCH --constraint="A100|H100.80gb"
 #SBTACH --job-name=BLT
 #SBATCH --error=logs/%x_%j.err
 #SBATCH --output=logs/%x_%j.out

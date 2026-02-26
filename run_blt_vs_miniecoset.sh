@@ -1,21 +1,21 @@
 #!/bin/bash
-#SBATCH --job-name=blt_vs_miniecoset
-#SBATCH --partition=gpu
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=12
-#SBATCH --mem=32G
-#SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
-#SBATCH --output=logs/blt_vs_%j.out
-#SBATCH --error=logs/blt_vs_%j.err
-#SBATCH --requeue
-#SBATCH --signal=SIGTERM@180
+#SBATCH -p klab-cpu
+#SBATCH -t 0-12:00:00
+#SBATCH --mem=64G
+#SBATCH -c 8
+#SBATCH --nodelist klab-2
 
-echo "-------------------------------------"
-echo "Host: $(hostname)"
-echo "Start: $(date)"
-echo "-------------------------------------"
+spack load miniconda3
+spack load git
+spack load cuda@11.8.0
+spack load cudnn@8.6.0.163-11.8
+eval "$(conda shell.bash hook)"
+conda activate anicog
+
+export TMPDIR=../tmp
+
+# this can be any command, use like your cmdline
+echo "running your code here..."
 
 export NCCL_SOCKET_IFNAME=lo
 mkdir -p logs

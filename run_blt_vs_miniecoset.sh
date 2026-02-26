@@ -14,19 +14,9 @@ spack load git
 spack load cuda@11.8.0
 spack load cudnn@8.6.0.163-11.8
 eval "$(conda shell.bash hook)"
-conda activate anicog
-
-export TMPDIR=../tmp
-
-# this can be any command, use like your cmdline
-echo "running your code here..."
 
 export NCCL_SOCKET_IFNAME=lo
 mkdir -p logs
-
-# Load CUDA
-spack load cuda@11.8.0
-spack load cudnn@8.6.0.163-11.8
 
 # Activate Conda
 source ~/startup_conda.sh
@@ -39,7 +29,7 @@ nvidia-smi
 
 echo "Starting training..."
 
-python train_net.py \
+python blt_vs_model/training_code/train_net.py \
     --network blt_vs_bottleneck \
     --dataset_mode 0 \
     --dataset miniecoset \

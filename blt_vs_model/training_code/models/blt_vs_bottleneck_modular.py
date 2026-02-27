@@ -102,6 +102,7 @@ class BLT_VS_ModularBottlenecks(nn.Module):
 
         # Store all configuration parameters inside the model object
         self.timesteps = timesteps
+        print("DEBUG: Model initialized with timesteps =", self.timesteps)
         self.num_classes = num_classes
         self.add_feats = add_feats
         self.lateral_connections = lateral_connections

@@ -391,6 +391,7 @@ if __name__ == '__main__':
                 outputs = net(imgs)
                 if epoch == 1 and epoch_running_init_flag == 0:
                     print("Labels shape:", lbls.shape)
+                    print("DEBUG: len(outputs) =", len(outputs))
                 loss = criterion(outputs[0], lbls.long()) 
                 if len(outputs) > 1:
                     for t in range(len(outputs)-1):

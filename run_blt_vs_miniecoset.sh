@@ -39,11 +39,11 @@ python blt_vs_model/training_code/train_net.py \
     --topdown_connections 1 \
     --skip_connections 0 \
     --bio_unroll 1 \
-    --batch_size 256 \
-    --batch_size_val_test 256 \
-    --n_epochs 40 \
+    --batch_size 64 \
+    --batch_size_val_test 64 \
+    --n_epochs 30 \
     --learning_rate 7.5e-4 \
-    --num_workers 8
+    --num_workers 4
 
 echo "-------------------------------------"
 echo "Finished: $(date)"

@@ -34,7 +34,7 @@ python blt_vs_model/training_code/train_net.py \
     --network blt_vs_bottleneck \
     --dataset_mode 0 \
     --dataset miniecoset \
-    --timesteps 10 \
+    --timesteps 12 \
     --lateral_connections 1 \
     --topdown_connections 1 \
     --skip_connections 0 \

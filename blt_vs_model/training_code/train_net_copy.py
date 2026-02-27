@@ -72,6 +72,8 @@ import matplotlib
 from datetime import datetime
 matplotlib.use("Agg")  # Important for HPC / no GUI
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 parser = argparse.ArgumentParser(description='Obtaining hyps')
 
@@ -271,7 +273,7 @@ if __name__ == '__main__':
         f"bn-{bottleneck_str}__"
         f"{timestamp}"
     )
-    
+
     net = net.float()
 
     # creating folders for logging losses/acc and network weights

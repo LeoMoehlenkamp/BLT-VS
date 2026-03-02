@@ -509,10 +509,28 @@ if __name__ == '__main__':
     if test_loader is not None:
         print(f'Test accuracies over time (%): {test_acc}')
         print('Saving metrics!')
-        np.savez(log_path+'/loss_'+net_name+'.npz', train_loss=train_losses, val_loss=val_losses, train_accuracies=train_accuracies, val_accuracies=val_accuracies, test_accuracies=test_acc)
+
+        np.savez(
+            log_path + '/loss_' + net_name + '.npz',
+            train_loss=train_losses,
+            val_loss=val_losses,
+            train_accuracies=train_accuracies,
+            val_accuracies=val_accuracies,
+            val_accuracies_all=np.array(val_accuracies_all, dtype=float),
+            test_accuracies=test_acc
+        )
+
     else:
         print('Saving metrics!')
-        np.savez(log_path+'/loss_'+net_name+'.npz', train_loss=train_losses, val_loss=val_losses, train_accuracies=train_accuracies, val_accuracies=val_accuracies)
+
+        np.savez(
+            log_path + '/loss_' + net_name + '.npz',
+            train_loss=train_losses,
+            val_loss=val_losses,
+            train_accuracies=train_accuracies,
+            val_accuracies=val_accuracies,
+            val_accuracies_all=np.array(val_accuracies_all, dtype=float)
+        )
 
     if hyp["dataset_mode"] != 1:
 

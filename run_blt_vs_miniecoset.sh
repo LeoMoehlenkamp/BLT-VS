@@ -29,7 +29,7 @@ nvidia-smi
 
 echo "Starting training..."
 
-python blt_vs_model/training_code/train_net/copy.py \
+python blt_vs_model/training_code/train_net_copy.py \
     --network blt_vs_bottleneck \
     --dataset_mode 0 \
     --dataset miniecoset \

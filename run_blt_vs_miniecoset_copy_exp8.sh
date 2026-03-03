@@ -36,7 +36,7 @@ python blt_vs_model/training_code/train_net_copy.py \
     --bottlenecks "V1->V2:96" \
     --timesteps 12 \
     --lateral_connections 1 \
-    --topdown_connections 1 \
+    --topdown_connections 0 \
     --skip_connections 0 \
     --bio_unroll 1 \
     --batch_size 64 \

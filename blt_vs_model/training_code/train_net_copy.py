@@ -245,6 +245,10 @@ def save_filtered_state_dict(state_dict, save_path): # because FLOP computation 
 
 if __name__ == '__main__':
 
+    print("\n==============================")
+    print("DEBUG: NEW SCRIPT VERSION ACTIVE")
+    print("==============================\n")
+
     # load the dataset loaders to iterate over for training and eval
     train_loader, val_loader, _, hyp = get_Dataset_loaders(hyp,['train','val'])
 
@@ -437,9 +441,13 @@ if __name__ == '__main__':
         # val_acc_running sollte timestep-wise sein -> z.B. [acc_t1, acc_t2, ...]
         val_acc_running = val_acc_running / len(val_loader)
 
+        print("DEBUG type(val_acc_running):", type(val_acc_running))
+        print("DEBUG val_acc_running:", val_acc_running)
+
         # Speichere timestep-wise acc pro epoch (als numpy array)
         val_acc_ts = np.array(val_acc_running, dtype=float)
         val_accuracies_all.append(val_acc_ts)
+        print("DEBUG val_accuracies_all shape so far:", np.array(val_accuracies_all).shape)
 
         # Zusätzlich wie bisher: mean accuracy pro epoch
         val_losses.append(val_loss_running / len(val_loader) / len(outputs))
@@ -457,6 +465,7 @@ if __name__ == '__main__':
         
         if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_logs'] == 0:
             print('Saving metrics!')
+            print("DEBUG FINAL SHAPE:", np.array(val_accuracies_all).shape)
             np.savez(
                 log_path+'/loss_'+net_name+'.npz',
                 train_loss=train_losses,

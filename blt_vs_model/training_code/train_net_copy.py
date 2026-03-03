@@ -452,6 +452,9 @@ if __name__ == '__main__':
         # Zusätzlich wie bisher: mean accuracy pro epoch
         val_losses.append(val_loss_running / len(val_loader) / len(outputs))
         val_accuracies.append(float(np.mean(val_acc_ts)))
+        
+        ts_string = " | ".join([f"t{i+1}:{acc:.2f}%" for i, acc in enumerate(val_acc_ts)])
+        print(f"Val acc per timestep → {ts_string}")
 
         print('Epoch time: ', "{:.2f}".format(time.time() - start), ' seconds')
         

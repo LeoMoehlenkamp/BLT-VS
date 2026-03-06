@@ -1,0 +1,785 @@
+
+"""
+Training Script for Vision Models (BLT-VS and Baselines)
+
+This script implements the full experimental pipeline for training and evaluating
+vision models (e.g., BLT-VS, ResNet, CORnet, vNet) on large-scale image datasets
+such as ImageNet or EcoSet.
+
+High-Level Functionality:
+-------------------------
+1. Parses command-line arguments to configure:
+   - Network architecture (e.g., BLT-VS, ResNet)
+   - Recurrence settings (timesteps, top-down, lateral, skip connections)
+   - Optimization hyperparameters (learning rate, batch size, epochs)
+   - Dataset and augmentation choices
+
+2. Builds a structured hyperparameter dictionary (hyp) to ensure
+   reproducibility and consistent experiment configuration.
+
+3. Loads dataset loaders (train/val/test) with specified augmentations.
+
+4. Instantiates the selected network architecture dynamically,
+   allowing fair comparison across different models.
+
+5. Sets up:
+   - Loss function (CrossEntropy with optional label smoothing)
+   - Optimizer (e.g., Adam)
+   - Learning rate scheduler (warmup + adaptive decay)
+   - Mixed precision training (AMP)
+   - Gradient clipping (for training stability)
+
+6. Executes the main training loop:
+   - Forward pass
+   - Loss computation (averaged across timesteps for recurrent models)
+   - Backpropagation (including recurrent gradient flow)
+   - Optimizer step
+   - Validation evaluation
+   - Learning rate scheduling
+   - Logging and checkpoint saving
+
+7. After training completion:
+   - Saves final model weights
+   - Evaluates performance on the test set
+   - Stores all metrics for later analysis
+
+Scientific Role:
+----------------
+This script defines the experimental training protocol for all models.
+It ensures identical optimization conditions across architectures,
+allowing meaningful comparison of recurrent (BLT-VS) and feedforward
+models.
+
+In summary:
+-----------
+This file does not define the architecture itself.
+It defines how the architecture learns.
+"""
+
+
+##################
+### Setting up and training a BLT network modelling the ventral stream
+# 224px inputs <-> 5deg visual angle
+##################
+
+##################
+### Collecting some hyperparameters that can be passed through cmd
+##################
+
+import argparse
+from tqdm import tqdm
+import matplotlib
+from datetime import datetime
+matplotlib.use("Agg")  # Important for HPC / no GUI
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+parser = argparse.ArgumentParser(description='Obtaining hyps')
+
+parser.add_argument('--network', type=str, default='blt_vs') # blt_vs / rn50 / others...
+parser.add_argument('--timesteps', type=int, default=6) # 6 is the minimum for no bio_unroll, 12 is the minimum for bio_unroll
+parser.add_argument('--identifier', type=int, default=1)
+parser.add_argument('--lateral_connections', type=int, default=1)
+parser.add_argument('--topdown_connections', type=int, default=1)
+parser.add_argument('--skip_connections', type=int, default=0)
+parser.add_argument('--bio_unroll', type=int, default=1)
+parser.add_argument('--readout_type', type=str, default='multi')
+parser.add_argument(
+    "--dataset_mode",
+    type=int,
+    default=0,
+    help="0 = EcoSet, 1 = FakeData, 2 = CIFAR100"
+)
+
+parser.add_argument('--dataset', type=str, default='ecoset')
+parser.add_argument('--batch_size', type=int, default=4)
+parser.add_argument('--batch_size_val_test', type=int, default=4)
+parser.add_argument('--n_epochs', type=int, default=1)
+parser.add_argument('--learning_rate', type=float, default=1e-3)
+parser.add_argument('--start_from_epoch', type=int, default=0)
+parser.add_argument('--num_workers', type=int, default=2)
+parser.add_argument('--max_steps', type=int, default=-1)
+parser.add_argument('--bottlenecks', type=str, default='', help='comma list like "V1->V2:144,V2->V3:160"')
+parser.add_argument('--grad_clipping', type=int, default=1)
+parser.add_argument("--ecoset_debug_subset", action="store_true")
+parser.add_argument("--ecoset_debug_size", type=int, default=500)
+
+args = parser.parse_args()
+
+##################
+### Importing required packages
+##################
+
+import torch
+import torch.nn as nn
+import numpy as np
+import time
+from helpers.helper_funcs import get_Dataset_loaders, create_folders_logging, LinearFitScheduler
+from models.helper_funcs import get_network_model, get_optimizer, eval_network, compute_accuracy, adaptive_gradient_clipping, calculate_flops
+import gc
+
+##################
+### Listing all hyperparameters
+##################
+
+base_lr = args.learning_rate
+
+if args.network == 'vNet': # vNet takes 128px images as inputs
+    print('Working with 128px inputs')
+    augmenter_train = {'resize_224','crop_224','resize_128','blurring','hflip','trivialaug','normalize'}
+    augemnter_val_test = {'resize_224','centercrop_224','resize_128','normalize'}
+else: 
+    # as imagenet images are not square, here we first rescale smaller axis to 224 and then crop.
+    print('Working with 224px inputs')
+    augmenter_train = {'resize_224','crop_224','blurring','hflip','trivialaug','normalize'}
+    augemnter_val_test = {'resize_224','centercrop_224','normalize'}
+
+hyp = {
+    'dataset': {
+        'name': args.dataset, # name of the dataset - ecoset/imagenet
+        'dataset_path': '/share/klab/datasets/', # Folder where dataset exists (end with '/')
+        'augment': augmenter_train, # Mention augmentations to be used here during training - blurring (always first), trivialaug, autoaugment, randaugment, normalize (always last)
+        'augment_val_test': augemnter_val_test, # Mention augmentations to be used here during validation/testing
+    },
+    'network': {
+        'name': args.network, # network to be used
+        'identifier': str(args.identifier), # identifier in case we run multiple versions of the net
+        'timesteps': args.timesteps, # number of timesteps to unroll the RNN
+        'lateral_connections': args.lateral_connections, # whether to use lateral connections
+        'topdown_connections': args.topdown_connections, # whether to use topdown connections
+        'skip_connections': args.skip_connections, # whether to use skip connections
+        'bio_unroll': args.bio_unroll, # whether to unroll the network in a biologically plausible manner
+        'readout_type': args.readout_type # whether to use a single or multiple readouts
+    },
+    'optimizer': {
+        'type': 'adam', # optimizer to be used
+        'lr': {'base_lr': base_lr, # learning rate
+               'warmup_epochs': 5 if args.start_from_epoch==0 else 2, # lr starts at base_lr/(lr scale factor) and scales up linearly for these many epochs
+               'lr_scale_factor': 100 if args.start_from_epoch==0 else 1.5, # factor by which to scale the learning rate
+               },
+        'batch_size': args.batch_size,
+        'n_epochs': args.n_epochs, # number of epochs (full cycle through the dataset)
+        'device': 'cuda', # device to train the network on
+        'dataloader': {
+            'num_workers_train': args.num_workers, # number of cpu workers processing the batches 
+            'prefetch_factor_train': 4, # number of batches kept in memory by each worker (providing quick access for the gpu)
+            'num_workers_val_test': 3, # do not need lots of workers for val/test
+            'prefetch_factor_val_test': 4 
+        }
+    },
+    'misc': {
+        'use_amp': True, # use automatic mixed precision during training - forward pass .half(), backward full
+        'batch_size_val_test': args.batch_size_val_test,
+        'save_logs': 1, # after how many epochs should we save a copy of the logs
+        'save_net': 1, # after how many epochs should we save a copy of the net - ensure this is a multiple of save_logs
+        'start_from_epoch': args.start_from_epoch # at which epoch to start training (data pulled from epoch before that)
+    }
+}
+
+hyp["dataset_mode"] = args.dataset_mode
+if hyp["dataset_mode"] == 2:
+    hyp["dataset"]["name"] = "cifar100"
+elif hyp["dataset_mode"] == 1:
+    hyp["dataset"]["name"] = "debug"
+
+# --- set num_classes based on dataset ---
+if hyp["dataset"]["name"] == "cifar100":
+    hyp["dataset"]["n_classes"] = 100
+elif hyp["dataset"]["name"] in ["ecoset", "miniecoset"]:
+    hyp["dataset"]["n_classes"] = 565
+elif hyp["dataset"]["name"] == "debug":
+    # FakeData: n_classes muss zu deinem FakeData passen (z.B. 10 oder 100)
+    hyp["dataset"]["n_classes"] = 100
+else:
+    raise ValueError(f"Unknown dataset name: {hyp['dataset']['name']}")
+
+hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
+hyp["ecoset_debug_size"] = args.ecoset_debug_size
+# -----------------------------
+# Modular bottlenecks config
+# -----------------------------
+def parse_bottlenecks(s: str):
+    s = (s or "").strip()
+    if s == "":
+        return {}
+    out = {}
+    for item in s.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        edge, ch = item.split(":")
+        out[edge.strip()] = int(ch.strip())
+    return out
+
+hyp["network"]["bottlenecks"] = parse_bottlenecks(args.bottlenecks)
+print("Bottlenecks:", hyp["network"]["bottlenecks"])
+
+# -----------------------------
+# Create readable bottleneck string for folder name
+# -----------------------------
+if hyp["network"]["bottlenecks"]:
+    bn_parts = []
+    for k, v in hyp["network"]["bottlenecks"].items():
+        clean_key = k.replace("->", "")
+        bn_parts.append(f"{clean_key}-{v}")
+    bottleneck_str = "_".join(bn_parts)
+else:
+    bottleneck_str = "none"
+
+# Beispiel: V1->V2 aktiv mit 144 Channels
+# hyp["network"]["bottlenecks"] = {"V1->V2": 144}
+##################
+### Training and evaluation
+##################
+
+print('\nAaaand it begins...\n')
+
+def save_filtered_state_dict(state_dict, save_path): # because FLOP computation adds some keys to the state_dict which are not needed for saving
+    # Get the model's state_dict
+    state_dict = state_dict
+    # Filter out keys containing 'total_ops' and 'total_params'
+    filtered_state_dict = {k: v for k, v in state_dict.items() if not ('total_ops' in k or 'total_params' in k)}
+    # Save the filtered state_dict
+    torch.save(filtered_state_dict, save_path)
+
+if __name__ == '__main__':
+
+    print("\n==============================")
+    print("DEBUG: NEW SCRIPT VERSION ACTIVE")
+    print("==============================\n")
+
+    # load the dataset loaders to iterate over for training and eval
+    train_loader, val_loader, _, hyp = get_Dataset_loaders(hyp,['train','val'])
+
+    print("Dataset mode:", hyp["dataset_mode"])
+    #print("Number of classes:", hyp["dataset"]["n_classes"])
+    print("Train dataset size:", len(train_loader.dataset))
+    print("Number of train batches:", len(train_loader))
+
+
+    net, net_name = get_network_model(hyp)
+    print("Dataset n_classes:", hyp["dataset"]["n_classes"])
+    if hasattr(net, "num_classes"):
+        print("Model num_classes:", net.num_classes)
+    net = net.float()
+    # create the network
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    network_name = hyp["network"]["name"]
+    dataset_name = hyp["dataset"]["name"]
+    timesteps = hyp["network"]["timesteps"]
+
+    net_name = (
+        f"{network_name}__"
+        f"{dataset_name}__"
+        f"ts{timesteps}__"
+        f"bn-{bottleneck_str}__"
+        f"{timestamp}"
+    )
+
+    net = net.float()
+
+    # creating folders for logging losses/acc and network weights
+    log_path, net_path = create_folders_logging(net_name)
+    print(f'Log_folders: {log_path} -- {net_path}')
+
+    # Initialize network weights if not starting from scratch
+    if hyp['misc']['start_from_epoch'] > 0:
+        load_epoch = hyp['misc']['start_from_epoch']
+        print(f'Loading epoch: {load_epoch}')
+        net_save_path = f'{net_path}/{net_name}_epoch_{load_epoch}.pth'
+        state_dict = torch.load(net_save_path)
+        net.load_state_dict(state_dict)
+        # load_filtered_state_dict(net, net_save_path)
+
+    # Print the number of FLOPs for one pass
+    if not args.network == 'blt_vnet':
+        if args.bio_unroll == 1:
+            print("\nSkipping FLOPs computation because bio_unroll=1 (thop/profile can break on this forward path).\n")
+        else:
+            dummy = torch.randn(1, 3, 128, 128) if args.network == 'vNet' else torch.randn(1, 3, 224, 224)
+            print("\nFLOPs for one pass: {}\n".format(calculate_flops(net, dummy)))
+        net.train()
+
+    print(net)
+    #print(net.bottlenecks)
+
+    # Use DataParallel for multi-GPU training
+    if torch.cuda.device_count() > 1:
+        print("\nLet's use", torch.cuda.device_count(), "GPUs!")
+        net = nn.DataParallel(net)
+    net.to(hyp['optimizer']['device'])
+
+    # criterion and optimizer setup
+    criterion = nn.CrossEntropyLoss(weight=hyp['dataset']['class_weights'], label_smoothing=0.1)
+    optimizer = get_optimizer(hyp,net)
+    scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
+
+    # LR scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, threshold=1e-2, verbose=True) # usual scheduler
+    lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=2) # 1% change necessary in 5 epochs, for 2 epochs straight, else drop lr by 1/5
+    
+    # Warm-up scheduler - this already initialises the lr to base_lr/lr_scale_factor - has an internal counter which it uses to do its updates when .step() is called!
+    warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch_h: ((hyp['optimizer']['lr']['base_lr'] - hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor']) / (hyp['optimizer']['lr']['warmup_epochs']-1)) * epoch_h + hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor'])
+
+    # logging losses and accuracies
+    if hyp['misc']['start_from_epoch'] == 0:
+        train_losses = []
+        train_accuracies = []
+        val_losses = []
+        val_accuracies = []
+        val_accuracies_all = []   # <-- NEU: timestep-wise val acc pro epoch
+    else:
+        log_data = np.load(log_path+'/loss_'+net_name+'.npz')
+        train_losses = list(log_data['train_loss'][:hyp['misc']['start_from_epoch']])
+        train_accuracies = list(log_data['train_accuracies'][:hyp['misc']['start_from_epoch']])
+        val_losses = list(log_data['val_loss'][:hyp['misc']['start_from_epoch']])
+        val_accuracies = list(log_data['val_accuracies'][:hyp['misc']['start_from_epoch']])
+
+        # <-- NEU: falls vorhanden, sonst leere Liste
+        if "val_accuracies_all" in log_data.files:
+            val_accuracies_all = list(log_data["val_accuracies_all"][:hyp['misc']['start_from_epoch']])
+        else:
+            val_accuracies_all = []
+
+    # saving the randomly initialized network
+    if hyp['misc']['start_from_epoch'] == 0:
+        if torch.cuda.device_count() > 1: # given how dataparallel works, we need to save the module's state_dict
+            save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
+            # torch.save(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
+        else:
+            save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
+            # torch.save(net.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
+
+    print('\nTraining begins here!\n')
+
+    epoch = 1
+    training_not_finished = 1
+
+    while training_not_finished: # Looping until we reach the desired number of epochs or convergence
+
+        start = time.time()
+
+        torch.cuda.synchronize()
+        
+        train_loss_running = 0.0
+        train_acc_running = 0.0
+
+        epoch_now = epoch+hyp['misc']['start_from_epoch']
+        print('LR now: ',optimizer.param_groups[0]['lr'])
+
+        epoch_running_init_flag = 0
+
+        # Reset memory stats
+        for i in range(torch.cuda.device_count()):
+            device = f'cuda:{i}'
+            torch.cuda.reset_peak_memory_stats(device)
+        
+        pbar = tqdm(
+            train_loader,
+            desc=f"Epoch {epoch_now}",
+            leave=True,
+            dynamic_ncols=True
+        )
+        for images, labels in pbar:
+
+            imgs = images.to(hyp['optimizer']['device'])
+            lbls = labels.to(hyp['optimizer']['device'])
+            # Move weights to the same device as inputs
+            if criterion.weight is not None:
+                criterion.weight = criterion.weight.to(imgs.device)
+
+            optimizer.zero_grad()
+            
+            with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=hyp['misc']['use_amp']):
+                outputs = net(imgs)
+                if epoch == 1 and epoch_running_init_flag == 0:
+                    print("Labels shape:", lbls.shape)
+                    print("DEBUG: len(outputs) =", len(outputs))
+                loss = criterion(outputs[0], lbls.long()) 
+                if len(outputs) > 1:
+                    for t in range(len(outputs)-1):
+                        loss = loss + criterion(outputs[t+1], lbls.long())
+                loss = loss/len(outputs)
+            
+            scaler.scale(loss).backward()
+            if args.grad_clipping:
+                # Clipping gradients
+                scaler.unscale_(optimizer)  # Unscale gradients before clipping
+                adaptive_gradient_clipping(net, clip_factor=0.1)
+            scaler.step(optimizer)
+            scaler.update()
+
+            train_loss_running += loss.item()
+            # train_loss_running = train_loss_running
+            train_acc_running += np.mean(compute_accuracy(outputs,lbls))
+
+            current_acc = np.mean(compute_accuracy(outputs, lbls))
+
+            pbar.set_postfix({
+                "loss": f"{loss.item():.3f}",
+                "acc": f"{current_acc:.2f}%"
+            })
+
+            if epoch_running_init_flag == 0:
+                epoch_running_init_flag = 1
+        pbar.close()
+
+        train_losses.append(train_loss_running/len(train_loader))
+        train_accuracies.append(train_acc_running/len(train_loader))
+
+        max_mem_allocated = 0
+        gpu_count = torch.cuda.device_count()
+        for i in range(torch.cuda.device_count()):
+            device = f'cuda:{i}'
+            max_mem_allocated += torch.cuda.max_memory_reserved(device) / (1024**3)
+        print(f'Max GPU(s) memory reserved: {max_mem_allocated} Gb; {gpu_count} GPU(s)')
+        
+        val_loss_running, val_acc_running = eval_network(val_loader, net, criterion, hyp)
+        net.train()
+
+        # val_acc_running sollte timestep-wise sein -> z.B. [acc_t1, acc_t2, ...]
+        val_acc_running = val_acc_running / len(val_loader)
+
+        print("DEBUG type(val_acc_running):", type(val_acc_running))
+        print("DEBUG val_acc_running:", val_acc_running)
+
+        # Speichere timestep-wise acc pro epoch (als numpy array)
+        val_acc_ts = np.array(val_acc_running, dtype=float)
+        val_accuracies_all.append(val_acc_ts)
+        print("DEBUG val_accuracies_all shape so far:", np.array(val_accuracies_all).shape)
+
+        # Zusätzlich wie bisher: mean accuracy pro epoch
+        val_losses.append(val_loss_running / len(val_loader) / len(outputs))
+        val_accuracies.append(float(np.mean(val_acc_ts)))
+        
+        ts_string = " | ".join([f"t{i+1}:{acc:.2f}%" for i, acc in enumerate(val_acc_ts)])
+        print(f"Val acc per timestep → {ts_string}")
+
+        print('Epoch time: ', "{:.2f}".format(time.time() - start), ' seconds')
+        
+        print(f'Train loss: {train_losses[-1]:.2f}; acc: {train_accuracies[-1]:.2f}%')
+        print(f'Val loss: {val_losses[-1]:.2f}; acc: {val_accuracies[-1]:.2f}%; acc_t: {val_acc_running}')
+
+        if (epoch) < hyp['optimizer']['lr']['warmup_epochs']: # updating for next epoch's use!
+            warmup_scheduler.step()
+        else:
+            lr_scheduler.step(val_losses[-1])
+        
+        if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_logs'] == 0:
+            print('Saving metrics!')
+            print("DEBUG FINAL SHAPE:", np.array(val_accuracies_all).shape)
+            np.savez(
+                log_path+'/loss_'+net_name+'.npz',
+                train_loss=train_losses,
+                val_loss=val_losses,
+                train_accuracies=train_accuracies,
+                val_accuracies=val_accuracies,
+                val_accuracies_all=np.array(val_accuracies_all, dtype=float)  # <-- NEU
+                )
+        else:
+            print('Not saving metrics!')
+
+        if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_net'] == 0:
+            print(f'Saving network!\n')
+            epoch_save = epoch+hyp['misc']['start_from_epoch']
+            if torch.cuda.device_count() > 1:
+                save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
+                # torch.save(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
+            else:
+                save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
+                # torch.save(net.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
+        else:
+            print('Not saving network!\n')
+
+        epoch += 1
+        if hyp['optimizer']['n_epochs'] > 0:
+            if epoch > hyp['optimizer']['n_epochs']:
+                training_not_finished = 0
+                print('\n Done training! - #epochs completed\n')
+        elif hyp['optimizer']['n_epochs'] == -1:
+            if optimizer.param_groups[0]['lr'] <= 1e-6:
+                training_not_finished = 0
+                print('\n Done training! - LR reached 1e-6 i.e. converged\n')
+
+    if torch.cuda.device_count() > 1:
+        save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}.pth')
+        # torch.save(net.module.state_dict(), f'{net_path}/{net_name}.pth')
+    else:
+        save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}.pth')
+        # torch.save(net.state_dict(), f'{net_path}/{net_name}.pth')
+
+    # getting test loss and acc
+    _, _, test_loader, hyp = get_Dataset_loaders(hyp,['test'])
+    net.eval()
+    if test_loader is not None:
+        test_loss_running, test_acc_running = eval_network(test_loader, net, criterion, hyp)
+        test_acc = test_acc_running / len(test_loader)
+        print("Test acc:", test_acc)
+    else:
+        print("Skipping test evaluation (no test loader in debug mode)")
+    if test_loader is not None:
+        print(f'Test accuracies over time (%): {test_acc}')
+        print('Saving metrics!')
+
+        np.savez(
+            log_path + '/loss_' + net_name + '.npz',
+            train_loss=train_losses,
+            val_loss=val_losses,
+            train_accuracies=train_accuracies,
+            val_accuracies=val_accuracies,
+            val_accuracies_all=np.array(val_accuracies_all, dtype=float),
+            test_accuracies=test_acc
+        )
+
+    else:
+        print('Saving metrics!')
+
+        np.savez(
+            log_path + '/loss_' + net_name + '.npz',
+            train_loss=train_losses,
+            val_loss=val_losses,
+            train_accuracies=train_accuracies,
+            val_accuracies=val_accuracies,
+            val_accuracies_all=np.array(val_accuracies_all, dtype=float)
+        )
+
+    # ============================
+    # Extract activations for PCA
+    # ============================
+
+    print("\nExtracting activations for PCA...")
+
+    areas=["Retina","LGN","V1","V2","V3","V4","LOC"]
+    timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
+
+    save_dict = {}
+    extract_batches = 0
+    max_extract_batches = 5
+
+    model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
+    model_for_extract.eval()
+
+    with torch.no_grad():
+        for images, labels in val_loader:
+
+            imgs = images.to(hyp['optimizer']['device'])
+
+            outputs, activations = model_for_extract(
+                imgs,
+                extract_actvs=True,
+                areas=areas_to_extract,
+                timesteps=timesteps_to_extract
+            )
+
+            for area in activations:
+                for t in activations[area]:
+
+                    act = activations[area][t]
+
+                    if act is None:
+                        continue
+
+                    key = f"{area}_t{t}"
+
+                    act_np = act.detach().cpu().numpy()
+
+                    if key not in save_dict:
+                        save_dict[key] = []
+
+                    save_dict[key].append(act_np)
+
+            extract_batches += 1
+            if extract_batches >= max_extract_batches:
+                break
+
+    # concatenate batches
+    for key in save_dict:
+        save_dict[key] = np.concatenate(save_dict[key], axis=0)
+
+    activation_path = log_path + "/activations_for_pca.npz"
+    np.savez(activation_path, **save_dict)
+
+    print("Saved activations to:", activation_path)
+    
+    if hyp["dataset_mode"] != 1:
+
+        print("Saving training plots (annotated + summary)...")
+
+        from matplotlib.ticker import MaxNLocator
+        import pandas as pd
+
+        epochs = np.arange(1, len(train_losses) + 1)
+
+        train_loss = np.array(train_losses)
+        val_loss = np.array(val_losses)
+        train_acc = np.array(train_accuracies)
+        val_acc = np.array(val_accuracies)
+
+        # ============================
+        # Compute best values
+        # ============================
+
+        best_val_acc = np.max(val_acc)
+        best_val_epoch = np.argmax(val_acc) + 1
+        train_acc_at_best = train_acc[best_val_epoch - 1]
+
+        best_val_loss = np.min(val_loss)
+        best_loss_epoch = np.argmin(val_loss) + 1
+        train_loss_at_best = train_loss[best_loss_epoch - 1]
+
+        # ============================
+        # ACCURACY PLOT (Annotated)
+        # ============================
+
+        plt.figure(figsize=(8,5))
+        plt.plot(epochs, train_acc, label="Train Accuracy")
+        plt.plot(epochs, val_acc, label="Validation Accuracy")
+
+        plt.scatter(best_val_epoch, best_val_acc, color='red', zorder=5)
+        plt.axvline(best_val_epoch, linestyle='--', alpha=0.5)
+
+        gap = train_acc_at_best - best_val_acc
+
+        plt.annotate(
+            f"Best Val Acc: {best_val_acc:.2f}%\nEpoch {best_val_epoch}\nGap: {gap:.2f}%",
+            (best_val_epoch, best_val_acc),
+            textcoords="offset points",
+            xytext=(-60,20)
+        )
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy (%)")
+        plt.title("Accuracy Curve (Annotated)")
+        plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
+        plt.grid(alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(log_path + "/accuracy_plot.png", dpi=300)
+        plt.close()
+
+        # ============================
+        # LOSS PLOT (Annotated)
+        # ============================
+
+        plt.figure(figsize=(8,5))
+        plt.plot(epochs, train_loss, label="Train Loss")
+        plt.plot(epochs, val_loss, label="Validation Loss")
+
+        plt.scatter(best_loss_epoch, best_val_loss, color='green', zorder=5)
+        plt.axvline(best_loss_epoch, linestyle='--', alpha=0.5)
+
+        plt.annotate(
+            f"Lowest Val Loss: {best_val_loss:.4f}\nEpoch {best_loss_epoch}",
+            (best_loss_epoch, best_val_loss),
+            textcoords="offset points",
+            xytext=(-60,-25)
+        )
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Loss Curve (Annotated)")
+        plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
+        plt.grid(alpha=0.3)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(log_path + "/loss_plot.png", dpi=300)
+        plt.close()
+
+        # ============================
+        # SUMMARY TABLE
+        # ============================
+
+        summary = pd.DataFrame({
+            "Metric": [
+                "Best Val Accuracy (%)",
+                "Train Accuracy @ Best Val Epoch (%)",
+                "Validation Loss @ Best Epoch",
+                "Train Loss @ Best Val Epoch"
+            ],
+            "Value": [
+                round(best_val_acc, 3),
+                round(train_acc_at_best, 3),
+                round(best_val_loss, 4),
+                round(train_loss_at_best, 4)
+            ]
+        })
+
+        fig, ax = plt.subplots(figsize=(7,2))
+        ax.axis('off')
+        table = ax.table(
+            cellText=summary.values,
+            colLabels=summary.columns,
+            loc='center'
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1, 1.5)
+
+        plt.tight_layout()
+        plt.savefig(log_path + "/training_summary_table.png", dpi=300)
+        plt.close()
+
+        # ============================
+        # TIMESTEP ACCURACY PLOT (Best Val Epoch)
+        # ============================
+
+        if len(val_accuracies_all) > 0:
+            best_epoch_idx = int(np.argmax(val_accuracies))  # index in [0..n_epochs-1]
+            best_epoch = best_epoch_idx + 1
+
+            ts_acc = np.array(val_accuracies_all[best_epoch_idx], dtype=float)
+            timesteps = np.arange(1, len(ts_acc) + 1)
+
+            plt.figure(figsize=(7,4))
+            plt.plot(timesteps, ts_acc, marker="o")
+            plt.xlabel("Timestep")
+            plt.ylabel("Accuracy (%)")
+            plt.title(f"Validation Accuracy over Timesteps (Best Epoch {best_epoch})")
+            plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.grid(alpha=0.3)
+            plt.tight_layout()
+            plt.savefig(log_path + "/val_accuracy_over_timesteps_best_epoch.png", dpi=300)
+            plt.close()
+
+        # ============================
+        # TIMESTEP ACCURACY PLOT (5 evenly spaced epochs)
+        # ============================
+
+        if len(val_accuracies_all) > 0:
+            N = len(val_accuracies_all)
+
+            # pick 5 epochs evenly spaced, like: 10->2,4,6,8,10 and 20->4,8,12,16,20
+            if N >= 5:
+                selected_epochs = np.linspace(1, N, 6)[1:]          # 5 values, excludes 1st
+                selected_epochs = np.unique(np.rint(selected_epochs).astype(int))
+                selected_epochs = np.clip(selected_epochs, 1, N)
+                selected_epochs = np.unique(selected_epochs)         # in case rounding causes duplicates
+
+                # If rounding collapsed duplicates (rare), fall back to evenly spaced integers
+                if len(selected_epochs) < 5:
+                    selected_epochs = np.unique(np.linspace(1, N, 5).astype(int))
+            else:
+                selected_epochs = np.arange(1, N + 1)
+
+            plt.figure(figsize=(8,5))
+
+            for ep in selected_epochs:
+                ts_acc = np.array(val_accuracies_all[ep - 1], dtype=float)
+                timesteps = np.arange(1, len(ts_acc) + 1)
+                plt.plot(timesteps, ts_acc, marker="o", label=f"Epoch {ep}")
+
+            plt.xlabel("Timestep")
+            plt.ylabel("Validation Accuracy (%)")
+            plt.title("Validation Accuracy over Timesteps (5 checkpoints)")
+            plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.grid(alpha=0.3)
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(log_path + "/val_accuracy_over_timesteps_5epochs.png", dpi=300)
+            plt.close()
+
+        print("Annotated plots and summary table saved successfully.")
+
+    else:
+        print("Skipping plot saving (debug dataset mode).")

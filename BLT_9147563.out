@@ -1,0 +1,180 @@
+Available conda environments are
+# conda environments:
+#
+base                  *  /appl/spack/opt/spack/linux-rocky8-zen/gcc-8.5.0/miniconda3-4.10.3-bgxkfvih5n7x4hyikk6stosxeo5hajxx
+blt_vs                   /home/student/l/lemoehlenkam/.conda/envs/blt_vs
+
+Activating conda environment: 
+Conda env: blt_vs
+/home/student/l/lemoehlenkam/.conda/envs/blt_vs/bin/python
+Python 3.10.19
+Sun Mar  8 13:16:05 2026       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.161.08             Driver Version: 535.161.08   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA L40S                    On  | 00000000:E1:00.0 Off |                  Off |
+| N/A   26C    P8              33W / 350W |      0MiB / 49140MiB |      0%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|  No running processes found                                                           |
++---------------------------------------------------------------------------------------+
+Starting training...
+Working with 224px inputs
+Bottlenecks: {'V1->V2': 48}
+
+Aaaand it begins...
+
+
+==============================
+DEBUG: NEW SCRIPT VERSION ACTIVE
+==============================
+
+Getting MiniEcoSet ready!
+/share/klab/datasets/optimized_datasets/miniecoset.h5
+Number of classes: 100
+Dataset mode: 0
+Train dataset size: 235000
+Number of train batches: 3672
+DEBUG: Model initialized with timesteps = 12
+[SANITY] Bottleneck wiring OK
+
+Network name: blt_vs_bottleneck_dataset_miniecoset_num_1
+
+The network has 9113384 trainable parameters
+
+Dataset n_classes: 100
+Model num_classes: 100
+Accessing log folders...
+Specific log folder is created!
+Specific net folder is created!
+Log_folders: logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-48__20260308_131613 -- logs/net_params/blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-48__20260308_131613
+
+Skipping FLOPs computation because bio_unroll=1 (thop/profile can break on this forward path).
+
+BLT_VS_ModularBottlenecks(
+  (bottlenecks): ModuleDict(
+    (V1->V2): Sequential(
+      (0): Conv2d(576, 48, kernel_size=(1, 1), stride=(1, 1))
+      (1): ReLU(inplace=True)
+    )
+  )
+  (connections): ModuleDict(
+    (Retina): BLT_VS_Layer(
+      (bu_conv): Conv2d(3, 32, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+      (bu_l_conv_depthwise): NoOpModule()
+      (bu_l_conv_pointwise): NoOpModule()
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 32, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 32, eps=1e-05, affine=True)
+    )
+    (LGN): BLT_VS_Layer(
+      (bu_conv): Conv2d(32, 32, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+      (bu_l_conv_depthwise): NoOpModule()
+      (bu_l_conv_pointwise): NoOpModule()
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 32, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 32, eps=1e-05, affine=True)
+    )
+    (V1): BLT_VS_Layer(
+      (bu_conv): Conv2d(32, 576, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (bu_l_conv_depthwise): Conv2d(576, 576, kernel_size=(5, 5), stride=(1, 1), padding=same, groups=576)
+      (bu_l_conv_pointwise): Conv2d(576, 576, kernel_size=(1, 1), stride=(1, 1))
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 576, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 576, eps=1e-05, affine=True)
+    )
+    (V2): BLT_VS_Layer(
+      (bu_conv): Conv2d(48, 480, kernel_size=(1, 1), stride=(1, 1))
+      (bu_l_conv_depthwise): Conv2d(480, 480, kernel_size=(5, 5), stride=(1, 1), padding=same, groups=480)
+      (bu_l_conv_pointwise): Conv2d(480, 480, kernel_size=(1, 1), stride=(1, 1))
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 480, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 480, eps=1e-05, affine=True)
+    )
+    (V3): BLT_VS_Layer(
+      (bu_conv): Conv2d(480, 352, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
+      (bu_l_conv_depthwise): Conv2d(352, 352, kernel_size=(5, 5), stride=(1, 1), padding=same, groups=352)
+      (bu_l_conv_pointwise): Conv2d(352, 352, kernel_size=(1, 1), stride=(1, 1))
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 352, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 352, eps=1e-05, affine=True)
+    )
+    (V4): BLT_VS_Layer(
+      (bu_conv): Conv2d(352, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (bu_l_conv_depthwise): Conv2d(256, 256, kernel_size=(5, 5), stride=(1, 1), padding=same, groups=256)
+      (bu_l_conv_pointwise): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 256, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 256, eps=1e-05, affine=True)
+    )
+    (LOC): BLT_VS_Layer(
+      (bu_conv): Conv2d(256, 352, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (bu_l_conv_depthwise): Conv2d(352, 352, kernel_size=(5, 5), stride=(1, 1), padding=same, groups=352)
+      (bu_l_conv_pointwise): Conv2d(352, 352, kernel_size=(1, 1), stride=(1, 1))
+      (td_conv): NoOpModule()
+      (td_l_conv_depthwise): NoOpModule()
+      (td_l_conv_pointwise): NoOpModule()
+      (skip_bu_depthwise): NoOpModule()
+      (skip_bu_pointwise): NoOpModule()
+      (skip_td_depthwise): NoOpModule()
+      (skip_td_pointwise): NoOpModule()
+      (layer_norm_bu): GroupNorm(1, 352, eps=1e-05, affine=True)
+      (layer_norm_td): GroupNorm(1, 352, eps=1e-05, affine=True)
+    )
+    (Readout): BLT_VS_Readout(
+      (readout_conv): Conv2d(352, 200, kernel_size=(5, 5), stride=(2, 2), padding=(2, 2))
+      (global_avg_pool): AdaptiveAvgPool2d(output_size=(1, 1))
+      (layer_norm_td): GroupNorm(1, 200, eps=1e-05, affine=True)
+    )
+  )
+)
+
+Training begins here!
+
+LR now:  7.5e-06

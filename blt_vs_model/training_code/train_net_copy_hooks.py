@@ -249,6 +249,8 @@ if __name__ == '__main__':
     print("DEBUG: NEW SCRIPT VERSION ACTIVE")
     print("==============================\n")
 
+    areas_to_extract=["Retina","LGN","V1","V2","V3","V4","LOC"]
+
     # load the dataset loaders to iterate over for training and eval
     train_loader, val_loader, _, hyp = get_Dataset_loaders(hyp,['train','val'])
 
@@ -550,7 +552,7 @@ if __name__ == '__main__':
 
     print("\nExtracting activations for PCA...")
 
-    areas=["Retina","LGN","V1","V2","V3","V4","LOC"]
+    areas_to_extract=["Retina","LGN","V1","V2","V3","V4","LOC"]
     timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
 
     save_dict = {}

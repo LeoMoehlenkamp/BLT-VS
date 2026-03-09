@@ -549,19 +549,22 @@ if __name__ == '__main__':
         )
 
     # ============================
-    # Extract activations for PCA
+    # Streaming PCA via covariance accumulation
     # ============================
 
-    print("\nExtracting activations for PCA...")
+    print("\nExtracting PCA statistics (streaming, no activation saving)...")
     _, val_loader, _, hyp = get_Dataset_loaders(hyp, ['val'])
     print("Validation batches for PCA:", len(val_loader))
 
-    areas_to_extract=["Retina","LGN","V1","V2","V3","V4","LOC"]
+    areas_to_extract = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
     timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
 
-    save_dict = {}
+    cov_mats = {}
+    sum_vecs = {}
+    counts = {}
+
     extract_batches = 0
-    max_extract_batches = 1
+    max_extract_batches = 1   # increase later if you want more stable PCA
 
     model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
     model_for_extract.eval()
@@ -591,26 +594,88 @@ if __name__ == '__main__':
 
                     key = f"{area}_t{t}"
 
-                    act_np = act.detach().cpu().numpy()
-                    act_np = act_np.transpose(0,2,3,1).reshape(-1, act_np.shape[1])
+                    # Optional spatial subsampling to reduce compute
+                    act = act[:, :, ::2, ::2]
 
-                    if key not in save_dict:
-                        save_dict[key] = []
+                    B, C, H, W = act.shape
 
-                    save_dict[key].append(act_np)
+                    # reshape to (N, C), where N = B * H * W
+                    X = act.permute(0, 2, 3, 1).reshape(-1, C)
+
+                    # use float32 for stable covariance accumulation
+                    X = X.detach().float()
+
+                    if key not in cov_mats:
+                        cov_mats[key] = torch.zeros(C, C, device=X.device, dtype=torch.float32)
+                        sum_vecs[key] = torch.zeros(C, device=X.device, dtype=torch.float32)
+                        counts[key] = 0
+
+                    cov_mats[key] += X.T @ X
+                    sum_vecs[key] += X.sum(dim=0)
+                    counts[key] += X.shape[0]
 
             extract_batches += 1
             if extract_batches >= max_extract_batches:
                 break
 
-    # concatenate batches
-    for key in save_dict:
-        save_dict[key] = np.concatenate(save_dict[key], axis=0)
+    print("Finished accumulating covariance matrices.")
 
-    activation_path = log_path + "/activations_for_pca.npz"
-    np.savez(activation_path, **save_dict)
+    # ============================
+    # Compute PCA results
+    # ============================
 
-    print("Saved activations to:", activation_path)
+    pca_results = {}
+
+    for key in cov_mats:
+
+        n = counts[key]
+
+        mean = sum_vecs[key] / n
+
+        cov = (cov_mats[key] / n) - torch.outer(mean, mean)
+
+        cov = cov.cpu().numpy()
+
+        eigvals, eigvecs = np.linalg.eigh(cov)
+
+        # sort descending
+        eigvals = eigvals[::-1]
+        eigvecs = eigvecs[:, ::-1]
+
+        # numerical safety
+        eigvals = np.clip(eigvals, a_min=0.0, a_max=None)
+
+        total_var = eigvals.sum()
+        if total_var <= 0:
+            explained = np.zeros_like(eigvals)
+        else:
+            explained = eigvals / total_var
+
+        cumulative = np.cumsum(explained)
+
+        channels_90 = int(np.searchsorted(cumulative, 0.90) + 1)
+        channels_95 = int(np.searchsorted(cumulative, 0.95) + 1)
+        channels_99 = int(np.searchsorted(cumulative, 0.99) + 1)
+
+        pca_results[f"{key}_eigvals"] = eigvals
+        pca_results[f"{key}_explained"] = explained
+        pca_results[f"{key}_cumulative"] = cumulative
+        pca_results[f"{key}_channels_90"] = np.array([channels_90])
+        pca_results[f"{key}_channels_95"] = np.array([channels_95])
+        pca_results[f"{key}_channels_99"] = np.array([channels_99])
+
+        print(
+            f"{key}: "
+            f"90%={channels_90}, "
+            f"95%={channels_95}, "
+            f"99%={channels_99}, "
+            f"total_channels={len(eigvals)}"
+        )
+
+    pca_path = log_path + "/pca_results_streaming.npz"
+    np.savez(pca_path, **pca_results)
+
+    print("Saved PCA results to:", pca_path)
     
     if hyp["dataset_mode"] != 1:
 

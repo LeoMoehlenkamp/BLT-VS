@@ -39,9 +39,9 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --topdown_connections 0 \
     --skip_connections 0 \
     --bio_unroll 1 \
-    --batch_size 8 \
-    --batch_size_val_test 8 \
-    --n_epochs 1 \
+    --batch_size 64 \
+    --batch_size_val_test 64 \
+    --n_epochs 30 \
     --learning_rate 7.5e-4 \
     --num_workers 4
 

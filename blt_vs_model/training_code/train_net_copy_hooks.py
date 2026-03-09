@@ -582,9 +582,12 @@ if __name__ == '__main__':
                     if act is None:
                         continue
 
+                    if isinstance(act, dict):
+                        act = next(iter(act.values()))
+
                     key = f"{area}_t{t}"
 
-                    act_np = act.detach().cpu().numpy()
+                    act_np = act.detach().cpu().numpy().reshape(act.shape[0], -1)
 
                     if key not in save_dict:
                         save_dict[key] = []

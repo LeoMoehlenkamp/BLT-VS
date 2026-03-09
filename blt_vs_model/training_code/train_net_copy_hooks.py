@@ -67,6 +67,7 @@ It defines how the architecture learns.
 ##################
 
 import argparse
+import sys
 from tqdm import tqdm
 import matplotlib
 from datetime import datetime
@@ -381,7 +382,8 @@ if __name__ == '__main__':
             train_loader,
             desc=f"Epoch {epoch_now}",
             leave=True,
-            dynamic_ncols=True
+            dynamic_ncols=True,
+            file= sys.stdout
         )
         for images, labels in pbar:
 

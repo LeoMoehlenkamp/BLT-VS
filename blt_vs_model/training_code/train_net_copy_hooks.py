@@ -553,13 +553,15 @@ if __name__ == '__main__':
     # ============================
 
     print("\nExtracting activations for PCA...")
+    _, val_loader, _, hyp = get_Dataset_loaders(hyp, ['val'])
+    print("Validation batches for PCA:", len(val_loader))
 
     areas_to_extract=["Retina","LGN","V1","V2","V3","V4","LOC"]
     timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
 
     save_dict = {}
     extract_batches = 0
-    max_extract_batches = 5
+    max_extract_batches = 1
 
     model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
     model_for_extract.eval()

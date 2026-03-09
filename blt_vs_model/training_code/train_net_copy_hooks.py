@@ -589,7 +589,8 @@ if __name__ == '__main__':
 
                     key = f"{area}_t{t}"
 
-                    act_np = act.detach().cpu().numpy().reshape(act.shape[0], -1)
+                    act_np = act.detach().cpu().numpy()
+                    act_np = act_np.transpose(0,2,3,1).reshape(-1, act_np.shape[1])
 
                     if key not in save_dict:
                         save_dict[key] = []

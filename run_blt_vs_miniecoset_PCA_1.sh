@@ -4,7 +4,7 @@
 #SBATCH -c 12
 #SBATCH --mem=16G
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
+#SBATCH --time=12:00:00
 #SBATCH --job-name=BLT
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -29,11 +29,11 @@ nvidia-smi
 
 echo "Starting training..."
 
-python blt_vs_model/training_code/train_net_copy.py \
+python blt_vs_model/training_code/train_net_copy_hooks.py \
     --network blt_vs_bottleneck \
+    --bottlenecks "LGN->V1:19" \
     --dataset_mode 0 \
     --dataset miniecoset \
-    --bottlenecks "V1->V2:48" \
     --timesteps 12 \
     --lateral_connections 1 \
     --topdown_connections 0 \

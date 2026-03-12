@@ -569,6 +569,18 @@ if __name__ == '__main__':
     model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
     model_for_extract.eval()
 
+    #Setup for unexpected values in layers
+    first_signal = {
+    "Retina": 0,
+    "LGN": 1,
+    "V1": 2,
+    "V2": 3,
+    "V3": 4,
+    "V4": 5,
+    "LOC": 6
+}
+    threshold = 1e-8
+
     with torch.no_grad():
         for images, labels in val_loader:
 
@@ -579,7 +591,7 @@ if __name__ == '__main__':
                 extract_actvs=True,
                 areas=areas_to_extract,
                 timesteps=timesteps_to_extract
-            )
+            ) 
 
             for area in activations:
                 for t in activations[area]:
@@ -592,7 +604,17 @@ if __name__ == '__main__':
                     if isinstance(act, dict):
                         act = next(iter(act.values()))
 
-                    if act.abs().max() == 0:
+                    # check activations before signal arrival
+                    if t < first_signal[area]:
+
+                        max_val = act.abs().max().item()
+                        mean_val = act.abs().mean().item()
+
+                        print(f"{area} t{t}: max={max_val:.2e}, mean={mean_val:.2e}")
+
+                        if max_val > threshold:
+                            print(f"⚠ Unexpected large activation at {area} t{t}")
+
                         continue
 
                     key = f"{area}_t{t}"

@@ -564,7 +564,7 @@ if __name__ == '__main__':
     counts = {}
 
     extract_batches = 0
-    max_extract_batches = 1   # increase later if you want more stable PCA
+    max_extract_batches = 50   # increase later if you want more stable PCA
 
     model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
     model_for_extract.eval()
@@ -591,6 +591,9 @@ if __name__ == '__main__':
 
                     if isinstance(act, dict):
                         act = next(iter(act.values()))
+
+                    if act.abs().max() == 0:
+                        continue
 
                     key = f"{area}_t{t}"
 

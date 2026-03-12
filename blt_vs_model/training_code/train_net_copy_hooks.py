@@ -73,6 +73,7 @@ import matplotlib
 from datetime import datetime
 matplotlib.use("Agg")  # Important for HPC / no GUI
 import matplotlib.pyplot as plt
+import os
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -605,12 +606,13 @@ if __name__ == '__main__':
                         act = next(iter(act.values()))
 
                     # check activations before signal arrival
-                    if t < first_signal[area]:
+                    if area in first_signal and t < first_signal[area]:
 
                         max_val = act.abs().max().item()
                         mean_val = act.abs().mean().item()
 
-                        print(f"{area} t{t}: max={max_val:.2e}, mean={mean_val:.2e}")
+                        if extract_batches == 0:
+                            print(f"{area} t{t}: max={max_val:.2e}, mean={mean_val:.2e}")
 
                         if max_val > threshold:
                             print(f"⚠ Unexpected large activation at {area} t{t}")
@@ -879,7 +881,156 @@ if __name__ == '__main__':
             plt.savefig(log_path + "/val_accuracy_over_timesteps_5epochs.png", dpi=300)
             plt.close()
 
+        # ============================
+        # RECURRENCE ANALYSIS PLOTS
+        # ============================
+
+        loss_file = log_path + '/loss_' + net_name + '.npz'
+
+        if os.path.exists(loss_file):
+
+            data = np.load(loss_file)
+
+            if "val_accuracies_all" in data.files:
+
+                val_all = data["val_accuracies_all"]
+
+                epochs, timesteps = val_all.shape
+                last_epoch = val_all[-1]
+
+                t1 = last_epoch[0]
+                tmax = last_epoch.max()
+                rec_score = tmax - t1
+                percent_gain = (rec_score / t1) * 100 if t1 != 0 else 0
+
+                print(f"Recurrence score Δ: {rec_score:.2f}")
+                print(f"Relative gain: {percent_gain:.2f}%")
+
+                # --------------------------
+                # Timestep curve (final epoch)
+                # --------------------------
+
+                plt.figure()
+                plt.plot(range(1, timesteps+1), last_epoch, marker="o")
+                plt.xlabel("Timestep")
+                plt.ylabel("Validation Accuracy (%)")
+                plt.title("Validation Accuracy over Timesteps (Final Epoch)")
+                plt.grid(True)
+                plt.tight_layout()
+
+                plt.savefig(os.path.join(log_path, "timestep_curve_last_epoch.png"), dpi=300)
+                plt.close()
+
+                # --------------------------
+                # Recurrence gain heatmap
+                # --------------------------
+
+                gain = val_all - val_all[:,0:1]
+
+                plt.figure(figsize=(10,6))
+                im = plt.imshow(gain, aspect="auto", cmap="viridis")
+
+                plt.colorbar(im, label="Gain relative to t1 (Accuracy %)")
+                plt.xlabel("Timestep")
+                plt.ylabel("Epoch")
+                plt.title("Recurrence Gain over Training")
+                plt.xticks(range(timesteps), [f"t{i+1}" for i in range(timesteps)])
+                plt.tight_layout()
+
+                plt.savefig(os.path.join(log_path, "recurrence_gain_heatmap.png"), dpi=300)
+                plt.close()
+
+        else:
+            print("Loss file not found, skipping recurrence plots.")
+
+
+        # ============================
+        # PCA DIMENSIONALITY PLOTS
+        # ============================
+
+        if os.path.exists(pca_path):
+
+            data = np.load(pca_path)
+
+            areas = ["Retina","LGN","V1","V2","V3","V4","LOC"]
+            timesteps = hyp["network"]["timesteps"]
+
+            total_channels = {
+                "Retina":32,
+                "LGN":32,
+                "V1":576,
+                "V2":480,
+                "V3":352,
+                "V4":256,
+                "LOC":352
+            }
+
+            levels = [90,95,99]
+
+            for level in levels:
+
+                dim_matrix = []
+
+                for area in areas:
+                    row = []
+
+                    for t in range(timesteps):
+
+                        key = f"{area}_t{t}_channels_{level}"
+
+                        if key in data:
+                            row.append(data[key][0])
+                        else:
+                            row.append(0)
+
+                    row.append(total_channels[area])
+                    dim_matrix.append(row)
+
+                dim_matrix = np.array(dim_matrix)
+
+                heatmap_abs = dim_matrix[:, :-1]
+
+                totals = np.array([total_channels[a] for a in areas])[:, None]
+                heatmap_rel = heatmap_abs / totals
+
+                fig, axes = plt.subplots(1,2, figsize=(16,6))
+
+                # Absolute dimensionality
+                ax = axes[0]
+                im = ax.imshow(heatmap_abs, aspect="auto")
+                plt.colorbar(im, ax=ax)
+                ax.set_title(f"Representation Dimensionality ({level}%)")
+                ax.set_xlabel("Timestep")
+                ax.set_ylabel("Visual Area")
+                ax.set_xticks(range(timesteps))
+                ax.set_yticks(range(len(areas)))
+                ax.set_yticklabels(areas)
+
+                # Relative dimensionality
+                ax = axes[1]
+                im = ax.imshow(heatmap_rel, aspect="auto", vmin=0, vmax=1)
+                plt.colorbar(im, ax=ax)
+                ax.set_title(f"Relative Dimensionality ({level}%)")
+                ax.set_xlabel("Timestep")
+                ax.set_ylabel("Visual Area")
+                ax.set_xticks(range(timesteps))
+                ax.set_yticks(range(len(areas)))
+                ax.set_yticklabels(areas)
+
+                plt.tight_layout()
+
+                save_path = os.path.join(log_path, f"pca_dimensionality_{level}.png")
+                plt.savefig(save_path, dpi=300)
+                plt.close()
+
+            print("PCA plots saved.")
+
+        else:
+            print("PCA results not found, skipping PCA plots.")
+
         print("Annotated plots and summary table saved successfully.")
 
     else:
         print("Skipping plot saving (debug dataset mode).")
+
+    

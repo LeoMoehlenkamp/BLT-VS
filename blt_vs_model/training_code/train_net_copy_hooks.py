@@ -903,8 +903,11 @@ if __name__ == '__main__':
                 rec_score = tmax - t1
                 percent_gain = (rec_score / t1) * 100 if t1 != 0 else 0
 
-                print(f"Recurrence score Δ: {rec_score:.2f}")
-                print(f"Relative gain: {percent_gain:.2f}%")
+                print(f"Final Epoch: {epochs}")
+                print(f"T1 Accuracy: {t1:.2f}")
+                print(f"Tmax Accuracy: {tmax:.2f}")
+                print(f"Recurrence Score (Δ): {rec_score:.2f}")
+                print(f"Relative Gain: {percent_gain:.2f}%")
 
                 # --------------------------
                 # Timestep curve (final epoch)
@@ -922,6 +925,48 @@ if __name__ == '__main__':
                 plt.close()
 
                 # --------------------------
+                # Table over epochs
+                # --------------------------
+
+                columns = [f"t{i+1}" for i in range(timesteps)] + ["t_max", "Δ (tmax-t1)", "Δ (%)"]
+
+                rows = []
+
+                for e in range(epochs):
+
+                    row = val_all[e]
+
+                    t1 = row[0]
+                    tmax = row.max()
+                    delta = tmax - t1
+                    percent = (delta / t1) * 100 if t1 != 0 else 0
+
+                    full_row = list(np.round(row, 2))
+                    full_row += [round(tmax, 2), round(delta, 2), round(percent, 2)]
+
+                    rows.append(full_row)
+
+                fig, ax = plt.subplots(figsize=(14, 0.4 * epochs + 2))
+                ax.axis("off")
+
+                table = ax.table(
+                    cellText=rows,
+                    colLabels=columns,
+                    rowLabels=[f"E{e+1}" for e in range(epochs)],
+                    loc="center"
+                )
+
+                table.auto_set_font_size(False)
+                table.set_fontsize(8)
+                table.scale(1, 1.2)
+
+                plt.title("Validation Accuracy – All Epochs (Timestep Summary)", pad=20)
+                plt.tight_layout()
+
+                plt.savefig(os.path.join(log_path, "timestep_table.png"), dpi=300, bbox_inches="tight")
+                plt.close()
+
+                # --------------------------
                 # Recurrence gain heatmap
                 # --------------------------
 
@@ -933,8 +978,10 @@ if __name__ == '__main__':
                 plt.colorbar(im, label="Gain relative to t1 (Accuracy %)")
                 plt.xlabel("Timestep")
                 plt.ylabel("Epoch")
-                plt.title("Recurrence Gain over Training")
+                plt.title("Recurrence Gain over Training (Relative to t1)")
                 plt.xticks(range(timesteps), [f"t{i+1}" for i in range(timesteps)])
+                plt.yticks(range(0, epochs, max(1, epochs//10)))
+
                 plt.tight_layout()
 
                 plt.savefig(os.path.join(log_path, "recurrence_gain_heatmap.png"), dpi=300)
@@ -949,6 +996,10 @@ if __name__ == '__main__':
         # ============================
 
         if os.path.exists(pca_path):
+
+            import matplotlib.pyplot as plt
+            import numpy as np
+            import os
 
             data = np.load(pca_path)
 
@@ -972,6 +1023,7 @@ if __name__ == '__main__':
                 dim_matrix = []
 
                 for area in areas:
+
                     row = []
 
                     for t in range(timesteps):
@@ -993,35 +1045,117 @@ if __name__ == '__main__':
                 totals = np.array([total_channels[a] for a in areas])[:, None]
                 heatmap_rel = heatmap_abs / totals
 
-                fig, axes = plt.subplots(1,2, figsize=(16,6))
+                fig, axes = plt.subplots(
+                    2, 2,
+                    figsize=(22,10),
+                    gridspec_kw={
+                        "height_ratios":[1,0.65],
+                        "wspace":0.35,
+                        "hspace":0.12
+                    }
+                )
 
-                # Absolute dimensionality
-                ax = axes[0]
+                # ---------------------------
+                # Absolute heatmap
+                # ---------------------------
+
+                ax = axes[0,0]
+
                 im = ax.imshow(heatmap_abs, aspect="auto")
-                plt.colorbar(im, ax=ax)
-                ax.set_title(f"Representation Dimensionality ({level}%)")
-                ax.set_xlabel("Timestep")
-                ax.set_ylabel("Visual Area")
+
+                cbar = plt.colorbar(im, ax=ax)
+                cbar.set_label(f"Channels for {level}% variance")
+
                 ax.set_xticks(range(timesteps))
+                ax.set_xticklabels(range(timesteps))
                 ax.set_yticks(range(len(areas)))
                 ax.set_yticklabels(areas)
 
-                # Relative dimensionality
-                ax = axes[1]
+                ax.set_xlabel("Timestep")
+                ax.set_ylabel("Visual Area")
+                ax.set_title(f"Representation Dimensionality ({level}% variance)")
+
+
+                # ---------------------------
+                # Relative heatmap
+                # ---------------------------
+
+                ax = axes[0,1]
+
                 im = ax.imshow(heatmap_rel, aspect="auto", vmin=0, vmax=1)
-                plt.colorbar(im, ax=ax)
-                ax.set_title(f"Relative Dimensionality ({level}%)")
-                ax.set_xlabel("Timestep")
-                ax.set_ylabel("Visual Area")
+
+                cbar = plt.colorbar(im, ax=ax)
+                cbar.set_label("Fraction of total channels")
+
                 ax.set_xticks(range(timesteps))
+                ax.set_xticklabels(range(timesteps))
                 ax.set_yticks(range(len(areas)))
                 ax.set_yticklabels(areas)
 
-                plt.tight_layout()
+                ax.set_xlabel("Timestep")
+                ax.set_ylabel("Visual Area")
+                ax.set_title(f"Relative Dimensionality ({level}% variance)")
+
+
+                # ---------------------------
+                # Absolute table
+                # ---------------------------
+
+                ax = axes[1,0]
+                ax.axis("off")
+
+                table_abs = ax.table(
+                    cellText=dim_matrix,
+                    rowLabels=areas,
+                    colLabels=[f"t{i}" for i in range(timesteps)] + ["Total"],
+                    cellLoc="center",
+                    bbox=[0,0.20,1,0.75]
+                )
+
+                table_abs.auto_set_font_size(False)
+                table_abs.set_fontsize(11)
+                table_abs.scale(1.2, 1.6)
+
+
+                # ---------------------------
+                # Relative table
+                # ---------------------------
+
+                ax = axes[1,1]
+                ax.axis("off")
+
+                rel_matrix = np.round(heatmap_rel * 100, 1)
+
+                rel_matrix = np.concatenate(
+                    [rel_matrix, np.full((len(areas),1), 100)],
+                    axis=1
+                )
+
+                table_rel = ax.table(
+                    cellText=rel_matrix,
+                    rowLabels=areas,
+                    colLabels=[f"t{i}" for i in range(timesteps)] + ["Total"],
+                    cellLoc="center",
+                    bbox=[0,0.20,1,0.75]
+                )
+
+                table_rel.auto_set_font_size(False)
+                table_rel.set_fontsize(11)
+                table_rel.scale(1.2, 1.6)
+
+
+                plt.subplots_adjust(
+                    left=0.06,
+                    right=0.96,
+                    top=0.92,
+                    bottom=0.05
+                )
 
                 save_path = os.path.join(log_path, f"pca_dimensionality_{level}.png")
-                plt.savefig(save_path, dpi=300)
-                plt.close()
+
+                plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+                plt.close(fig)
 
             print("PCA plots saved.")
 

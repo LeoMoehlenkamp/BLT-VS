@@ -2,9 +2,9 @@
 #SBATCH --partition=klab-l40s
 #SBATCH --nodes=1
 #SBATCH -c 12
-#SBATCH --mem=12G
+#SBATCH --mem=16G
 #SBATCH --gres=gpu:1
-#SBATCH --time=2:00:00
+#SBATCH --time=12:00:00
 #SBATCH --job-name=BLT
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -31,7 +31,7 @@ echo "Starting training..."
 
 python blt_vs_model/training_code/train_net_copy_hooks.py \
     --network blt_vs_bottleneck \
-    --bottlenecks "LGN->V1:19" \
+    --bottlenecks "" \
     --dataset_mode 0 \
     --dataset miniecoset \
     --timesteps 12 \
@@ -41,7 +41,7 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --bio_unroll 1 \
     --batch_size 64 \
     --batch_size_val_test 64 \
-    --n_epochs 1 \
+    --n_epochs 30 \
     --learning_rate 7.5e-4 \
     --num_workers 4
 

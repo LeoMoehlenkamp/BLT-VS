@@ -360,6 +360,9 @@ if __name__ == '__main__':
     epoch = 1
     training_not_finished = 1
 
+    best_val_acc = -float("inf")
+    best_epoch = -1
+
     while training_not_finished: # Looping until we reach the desired number of epochs or convergence
 
         start = time.time()
@@ -457,45 +460,45 @@ if __name__ == '__main__':
         # Zusätzlich wie bisher: mean accuracy pro epoch
         val_losses.append(val_loss_running / len(val_loader) / len(outputs))
         val_accuracies.append(float(np.mean(val_acc_ts)))
-        
+
+        current_val_acc = val_accuracies[-1]
+        epoch_save = epoch + hyp['misc']['start_from_epoch']
+
+        if current_val_acc > best_val_acc:
+
+            best_val_acc = current_val_acc
+            best_epoch = epoch_save
+
+            print(f"New BEST model at epoch {best_epoch} (val acc = {best_val_acc:.2f}%)")
+
+            if torch.cuda.device_count() > 1:
+                save_filtered_state_dict(
+                    net.module.state_dict(),
+                    f'{net_path}/{net_name}_BEST.pth'
+                )
+            else:
+                save_filtered_state_dict(
+                    net.state_dict(),
+                    f'{net_path}/{net_name}_BEST.pth'
+                )
+
+
         ts_string = " | ".join([f"t{i+1}:{acc:.2f}%" for i, acc in enumerate(val_acc_ts)])
         print(f"Val acc per timestep → {ts_string}")
 
         print('Epoch time: ', "{:.2f}".format(time.time() - start), ' seconds')
-        
+
         print(f'Train loss: {train_losses[-1]:.2f}; acc: {train_accuracies[-1]:.2f}%')
         print(f'Val loss: {val_losses[-1]:.2f}; acc: {val_accuracies[-1]:.2f}%; acc_t: {val_acc_running}')
 
-        if (epoch) < hyp['optimizer']['lr']['warmup_epochs']: # updating for next epoch's use!
+        if (epoch) < hyp['optimizer']['lr']['warmup_epochs']:
             warmup_scheduler.step()
         else:
             lr_scheduler.step(val_losses[-1])
-        
+
         if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_logs'] == 0:
             print('Saving metrics!')
-            print("DEBUG FINAL SHAPE:", np.array(val_accuracies_all).shape)
-            np.savez(
-                log_path+'/loss_'+net_name+'.npz',
-                train_loss=train_losses,
-                val_loss=val_losses,
-                train_accuracies=train_accuracies,
-                val_accuracies=val_accuracies,
-                val_accuracies_all=np.array(val_accuracies_all, dtype=float)  # <-- NEU
-                )
-        else:
-            print('Not saving metrics!')
-
-        if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_net'] == 0:
-            print(f'Saving network!\n')
-            epoch_save = epoch+hyp['misc']['start_from_epoch']
-            if torch.cuda.device_count() > 1:
-                save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
-                # torch.save(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
-            else:
-                save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
-                # torch.save(net.state_dict(), f'{net_path}/{net_name}_epoch_{epoch_save}.pth')
-        else:
-            print('Not saving network!\n')
+            np.savez(...)
 
         epoch += 1
         if hyp['optimizer']['n_epochs'] > 0:
@@ -507,12 +510,19 @@ if __name__ == '__main__':
                 training_not_finished = 0
                 print('\n Done training! - LR reached 1e-6 i.e. converged\n')
 
+    final_epoch = epoch + hyp['misc']['start_from_epoch'] - 1
+    print(f"\nSaving LAST checkpoint (epoch {final_epoch})")
+
     if torch.cuda.device_count() > 1:
-        save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}.pth')
-        # torch.save(net.module.state_dict(), f'{net_path}/{net_name}.pth')
+            save_filtered_state_dict(
+                net.module.state_dict(),
+                f'{net_path}/{net_name}_LAST.pth'
+            )
     else:
-        save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}.pth')
-        # torch.save(net.state_dict(), f'{net_path}/{net_name}.pth')
+            save_filtered_state_dict(
+                net.state_dict(),
+                f'{net_path}/{net_name}_LAST.pth'
+            )
 
     # getting test loss and acc
     _, _, test_loader, hyp = get_Dataset_loaders(hyp,['test'])

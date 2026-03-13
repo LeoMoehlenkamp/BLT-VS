@@ -498,7 +498,14 @@ if __name__ == '__main__':
 
         if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_logs'] == 0:
             print('Saving metrics!')
-            np.savez(...)
+            np.savez(
+                log_path + '/loss_' + net_name + '.npz',
+                train_loss=train_losses,
+                val_loss=val_losses,
+                train_accuracies=train_accuracies,
+                val_accuracies=val_accuracies,
+                val_accuracies_all=np.array(val_accuracies_all, dtype=float)
+            )
 
         epoch += 1
         if hyp['optimizer']['n_epochs'] > 0:

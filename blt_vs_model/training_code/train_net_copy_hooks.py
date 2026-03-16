@@ -117,6 +117,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
+import json
+import inspect
 from helpers.helper_funcs import get_Dataset_loaders, create_folders_logging, LinearFitScheduler
 from models.helper_funcs import get_network_model, get_optimizer, eval_network, compute_accuracy, adaptive_gradient_clipping, calculate_flops
 import gc
@@ -287,6 +289,67 @@ if __name__ == '__main__':
     # creating folders for logging losses/acc and network weights
     log_path, net_path = create_folders_logging(net_name)
     print(f'Log_folders: {log_path} -- {net_path}')
+
+    # ============================
+    # Save model config and definition
+    # ============================
+
+    def _json_serializable(obj):
+        """Convert non-serializable types so hyp can be saved as JSON."""
+        if isinstance(obj, set):
+            return sorted(list(obj))
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, (np.integer,)):
+            return int(obj)
+        if isinstance(obj, (np.floating,)):
+            return float(obj)
+        if isinstance(obj, torch.Tensor):
+            return obj.cpu().tolist()
+        return str(obj)
+
+    # 1) Save hyperparameter config as JSON
+    config_path = os.path.join(log_path, "config.json")
+    with open(config_path, "w") as f:
+        json.dump(hyp, f, indent=2, default=_json_serializable)
+    print(f"Saved model config to {config_path}")
+
+    # 2) Save command-line args as JSON
+    args_path = os.path.join(log_path, "args.json")
+    with open(args_path, "w") as f:
+        json.dump(vars(args), f, indent=2, default=_json_serializable)
+    print(f"Saved command-line args to {args_path}")
+
+    # 3) Save model architecture string (print(net) output)
+    arch_path = os.path.join(log_path, "model_architecture.txt")
+    with open(arch_path, "w") as f:
+        f.write(str(net))
+    print(f"Saved model architecture to {arch_path}")
+
+    # 4) Save model class source code (if inspectable)
+    model_src_path = os.path.join(log_path, "model_source.py")
+    try:
+        model_class = type(net)
+        source_code = inspect.getsource(model_class)
+        with open(model_src_path, "w") as f:
+            f.write(f"# Source of {model_class.__module__}.{model_class.__name__}\n\n")
+            f.write(source_code)
+        print(f"Saved model source code to {model_src_path}")
+    except (TypeError, OSError) as e:
+        print(f"Could not save model source code: {e}")
+
+    # 5) Save total parameter count
+    total_params = sum(p.numel() for p in net.parameters())
+    trainable_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    param_info = {
+        "total_parameters": total_params,
+        "trainable_parameters": trainable_params,
+        "non_trainable_parameters": total_params - trainable_params,
+    }
+    param_path = os.path.join(log_path, "param_count.json")
+    with open(param_path, "w") as f:
+        json.dump(param_info, f, indent=2)
+    print(f"Saved parameter counts to {param_path}  (total={total_params:,}, trainable={trainable_params:,})")
 
     # Initialize network weights if not starting from scratch
     if hyp['misc']['start_from_epoch'] > 0:

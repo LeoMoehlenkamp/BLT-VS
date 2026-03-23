@@ -1,0 +1,1078 @@
+.
+├── blt_vs_model
+│   ├── blt_vs.py
+│   ├── ecoset.json
+│   ├── imagenet.json
+│   ├── __init__.py
+│   ├── model.py
+│   ├── torchinductor_lemoehlenkam
+│   ├── training_code
+│   │   ├── data
+│   │   │   ├── cifar-100-python
+│   │   │   │   ├── file.txt~
+│   │   │   │   ├── meta
+│   │   │   │   ├── test
+│   │   │   │   └── train
+│   │   │   └── cifar-100-python.tar.gz
+│   │   ├── .DS_Store
+│   │   ├── helpers
+│   │   │   ├── helper_funcs.py
+│   │   │   └── __pycache__
+│   │   │       └── helper_funcs.cpython-310.pyc
+│   │   ├── models
+│   │   │   ├── blt_vs_bottleneck_modular.py
+│   │   │   ├── blt_vs_bottleneck.py
+│   │   │   ├── BLT_VS.py
+│   │   │   ├── B_net.py
+│   │   │   ├── CORnet.py
+│   │   │   ├── helper_funcs.py
+│   │   │   ├── __pycache__
+│   │   │   │   ├── blt_vs_bottleneck.cpython-310.pyc
+│   │   │   │   ├── blt_vs_bottleneck_modular.cpython-310.pyc
+│   │   │   │   ├── BLT_VS.cpython-310.pyc
+│   │   │   │   └── helper_funcs.cpython-310.pyc
+│   │   │   ├── ResNet.py
+│   │   │   └── vNet.py
+│   │   ├── run_inference.py
+│   │   ├── torchinductor_lemoehlenkam
+│   │   ├── train_net_copy_hooks.py
+│   │   ├── train_net_copy.py
+│   │   └── train_net.py
+│   ├── transforms.py
+│   └── utils.py
+├── bulldog.jpg
+├── car.jpg
+├── data
+│   ├── cifar-100-python
+│   │   ├── file.txt~
+│   │   ├── meta
+│   │   ├── test
+│   │   └── train
+│   └── cifar-100-python.tar.gz
+├── ecoset_imagenet_accs.png
+├── example.py
+├── .git
+│   ├── branches
+│   ├── config
+│   ├── description
+│   ├── FETCH_HEAD
+│   ├── HEAD
+│   ├── hooks
+│   │   ├── applypatch-msg.sample
+│   │   ├── commit-msg.sample
+│   │   ├── fsmonitor-watchman.sample
+│   │   ├── post-update.sample
+│   │   ├── pre-applypatch.sample
+│   │   ├── pre-commit.sample
+│   │   ├── pre-merge-commit.sample
+│   │   ├── prepare-commit-msg.sample
+│   │   ├── pre-push.sample
+│   │   ├── pre-rebase.sample
+│   │   ├── pre-receive.sample
+│   │   ├── push-to-checkout.sample
+│   │   └── update.sample
+│   ├── index
+│   ├── info
+│   │   └── exclude
+│   ├── logs
+│   │   ├── HEAD
+│   │   └── refs
+│   │       ├── heads
+│   │       │   └── main
+│   │       └── remotes
+│   │           └── origin
+│   │               ├── HEAD
+│   │               └── main
+│   ├── objects
+│   │   ├── 00
+│   │   │   ├── 9474663620b55012be01d87fe736aae1df3bfb
+│   │   │   └── bae6503a6fdee2fd2b114c5b5c711e0dc71497
+│   │   ├── 02
+│   │   │   ├── a9112a1f7a7634d82ff8a106fd2176731ba66c
+│   │   │   └── c52416d060da04966467db78ea939fb4d16324
+│   │   ├── 03
+│   │   │   └── bcc0906a7e334b286277b7507800f44fd32f96
+│   │   ├── 04
+│   │   │   └── 0d66b2b7d945b1733d31b2412c08d4039a5fa0
+│   │   ├── 07
+│   │   │   └── add967e1fa0594cf1db8177ab83aa6e516852a
+│   │   ├── 08
+│   │   │   ├── 642c463aabc797296315f3ca01344cd191706b
+│   │   │   └── baa998637df830e1d5e8b331e99f916985b22a
+│   │   ├── 09
+│   │   │   └── 5646f4e9605380e837cb57f8e00ac94ff50aae
+│   │   ├── 0b
+│   │   │   ├── 072135ec4e8365d8a1b76bde32d8d4c9eb42ac
+│   │   │   ├── 1829c01e571aa909687418c04987a55e23ad07
+│   │   │   ├── 76aeed1f6d56167b593804a0fc8b66641cfa1e
+│   │   │   └── ed7c6bf47f27dcb14bc1e894729c44b68e8a94
+│   │   ├── 0c
+│   │   │   ├── 1f9a865d9e725a0b87f305e8b4ae4491e29792
+│   │   │   ├── cfc22826312fe11ad99081e994ad15acedcb12
+│   │   │   └── f833c0f0b5b4ae3dd0d91dcdacf324fd096588
+│   │   ├── 0d
+│   │   │   └── ca7eb420ccdfbdf67a6f1a2983f72fa7bcc9f8
+│   │   ├── 0e
+│   │   │   └── 3c3f02d92cfa7c157d929f2e64f8a299175b79
+│   │   ├── 0f
+│   │   │   └── 27d51f288df8aaccb56cf6161ec532b955b9dd
+│   │   ├── 10
+│   │   │   └── 2bf31e8c482ef358ec1fd78f2fe82df6bd1ca9
+│   │   ├── 12
+│   │   │   └── dbb8f0afd21fba97548d539f01712c922d5f80
+│   │   ├── 13
+│   │   │   └── 6a68d8e083b73f5a36259bc5a21ea03bffa555
+│   │   ├── 14
+│   │   │   └── 2ec8d578d979d482969e6aec9637b3c693db2d
+│   │   ├── 17
+│   │   │   ├── 418a0150ce70cfd312e0252dafc9b8d93763e3
+│   │   │   └── 95c77b48000c074dada73e95c7b1c62a205288
+│   │   ├── 19
+│   │   │   └── 38148800706bf060fd70242567a9c267298dba
+│   │   ├── 1b
+│   │   │   ├── 7c7a398ebb6e2cf75c0f5db30c2204eac5e5b8
+│   │   │   └── d59e63054e2e63c6796d64296883446ab5d23b
+│   │   ├── 1d
+│   │   │   ├── 32c7ffcee45a092ef8893a278ec943316f3710
+│   │   │   ├── c59e1153143cee97d2d9b5181cca60631c0066
+│   │   │   ├── dfa8f1dc7ce4ff2ae75a4c762465e2df1931f1
+│   │   │   ├── e7b3a46630a7f0d1dc30addb744e07e2415782
+│   │   │   ├── f20e7f941444b33ac05ecc6c2d5c196bd7b301
+│   │   │   └── f8b75255d7514076c39c941cf909822449520e
+│   │   ├── 1e
+│   │   │   ├── e6ac4c33d54b60b0e67e73253d0eabdf140e40
+│   │   │   └── ed87f8a7e1d72bf4c589d611af6a20ef07cef2
+│   │   ├── 1f
+│   │   │   └── 2bbd7b110f21f59ddad241db4a3ef229d2c0e3
+│   │   ├── 20
+│   │   │   ├── 72cb561cf874a2c5cf3d04b791a23f47567b0a
+│   │   │   └── f23dc8a9d25a3fede46e9b33224adcd0a5036f
+│   │   ├── 22
+│   │   │   └── 9e0e3e50836f61bbf1855e5196da90bdea26c4
+│   │   ├── 23
+│   │   │   ├── 4b1171fb3596fa845b59e466a8ac8c5a9f3e37
+│   │   │   └── 4cb4d2e686230257b9fba42a38bd63d4bd4b64
+│   │   ├── 24
+│   │   │   ├── 3c05fcf805bc93c3f62cd32970a9cce37b0021
+│   │   │   └── 835ee3c62736b254075a8709e3f53d07905943
+│   │   ├── 25
+│   │   │   ├── 5f46c7407c9a3e7dfec815a060ba421760ecca
+│   │   │   └── 88f7573c735d2c406c99474b62204a06487f6f
+│   │   ├── 26
+│   │   │   ├── 7c4034cee870a300f93f89f178a6e216357f24
+│   │   │   └── ee6e9eda2d3cae3c3d3630bbd325b5da16c500
+│   │   ├── 28
+│   │   │   └── 1aaf4de1b5d70e8666c229909edfa6988afe2d
+│   │   ├── 29
+│   │   │   ├── 49f9831deee363bf63e501069d49d608b84a91
+│   │   │   └── 97183ba1a222b79a8b8ccc4b7b95582c2bb8b5
+│   │   ├── 2a
+│   │   │   └── 58232e9ea86dcd633bc338aee0cba95542dc93
+│   │   ├── 2b
+│   │   │   └── 94b2d8fbc81329e69c1fabe7225ab8e21e49cb
+│   │   ├── 2d
+│   │   │   └── 6c85dfca7dae8f715ab451d85cf9279ba97271
+│   │   ├── 2e
+│   │   │   ├── 607834a2767fa25a117cb9ded668d326f64881
+│   │   │   └── b84eb6497054b63b3ab3a37eeb8ce29714ef71
+│   │   ├── 2f
+│   │   │   └── 983bdb24932f681598d5ba55cb9762bffe8e62
+│   │   ├── 30
+│   │   │   └── bcbf29f49f4fc283730a4f0b8a3c90122b00e2
+│   │   ├── 32
+│   │   │   └── 571a93d324313501fe97b53ad35dad961096d2
+│   │   ├── 33
+│   │   │   ├── 56d0fd2281bb67c0068d3c691b2f69e963480a
+│   │   │   ├── c36ad942154b1683702041c09be6cc1bbfd217
+│   │   │   └── f7393ff5d33ff9481f00eabca19b26280c4ce3
+│   │   ├── 35
+│   │   │   ├── 5a6925a034aaa7b7219db7b0dcc3aedcbda33f
+│   │   │   ├── 8cc8ebc29c47e9a54d56673eec0c4fa0ad7677
+│   │   │   └── dad27d7f8aa0635d21089e35f74c640bdc2424
+│   │   ├── 36
+│   │   │   ├── 370ec4cad9cd7c96d583f27059139c1a84a3e4
+│   │   │   ├── ab2a255050251f1aa21d89bdab198a82b18a62
+│   │   │   ├── bcf66ad48f8e6a92bb94e9b9f8809792106c77
+│   │   │   └── dd955f3199954a9de1e3add4d01ce9b971a101
+│   │   ├── 37
+│   │   │   ├── 975c22748f3f670f0443c023c8b9b11a1ae3bb
+│   │   │   └── f206d0431c8265e3cfa0a235ffd92712983ebd
+│   │   ├── 38
+│   │   │   ├── 059b20d2b620504cf7e06905eaa7bffaa06e8c
+│   │   │   ├── 18534dc7a74108e10a7f455986325143cece64
+│   │   │   └── 701e162cf373743c8913efa4f8704315ff9896
+│   │   ├── 39
+│   │   │   └── 4fc86d89818121fb694ced9efc4116907ca264
+│   │   ├── 3a
+│   │   │   └── 8ee2b9e960aca31412467bbc961150a15bb931
+│   │   ├── 3b
+│   │   │   ├── 987b9ee035abc3c9db1a3989675666d4c85be6
+│   │   │   └── f407b9a080859b67a2291013e9a4d472237114
+│   │   ├── 3c
+│   │   │   └── 4de29ea5d680415c58be4f039a02ff8ecb6ca2
+│   │   ├── 3d
+│   │   │   └── a9fc1cd171b95de6525d471c326356b85ce624
+│   │   ├── 3e
+│   │   │   ├── 2112c2714b245e73bae362ed6f49056cb97074
+│   │   │   └── 5d34b3f1978cc0056123854d62afb351ba8992
+│   │   ├── 3f
+│   │   │   └── cdf5c6be031c66b41b32c2fc865716b6ddf2da
+│   │   ├── 41
+│   │   │   └── 495d098cc3bc611a34ec23c096bc4a05a9da9c
+│   │   ├── 44
+│   │   │   └── c6fd6779192db3a5d2ce00042daf15c9633125
+│   │   ├── 46
+│   │   │   ├── 3329e7a04a25a477bef25c8e13cc84419b9066
+│   │   │   └── 57a090dc1dc87056f0f0985cb6507cb4c9b110
+│   │   ├── 47
+│   │   │   ├── 00a5ddb2e8ecf61590a8544e5dbc0cc5193ff5
+│   │   │   ├── 4553c1a4fe5137d15ddbbb7dcb24fbddf7433a
+│   │   │   ├── 5a57cda135199b2e1fc7f12898e57ff87494e9
+│   │   │   └── e3077d31949f294ef36a19c48498bc7000ed07
+│   │   ├── 48
+│   │   │   ├── 6ef210b2f7c930827a320e0382ee8d68b8218c
+│   │   │   ├── 7a3a46483a17ccc452b63027cc23d2db209d63
+│   │   │   └── edc0388226a35870862ae13e79d456c39718c7
+│   │   ├── 49
+│   │   │   ├── 0ef1943986893c549d25977016432741c2390b
+│   │   │   └── 8825dcee9a3a2c3f456823273b207e69662c1b
+│   │   ├── 4b
+│   │   │   ├── b65409ac0968536b7ee7ea9199599fd3e0c31c
+│   │   │   └── dbe245ec301ca184e4826796ee8d30f2f5527d
+│   │   ├── 4c
+│   │   │   └── 7c40454d927f2847e9fafb607e96ab5251eb7a
+│   │   ├── 4d
+│   │   │   └── 0c42701a081e7a006b9e2206891fcec1134b2c
+│   │   ├── 50
+│   │   │   ├── 50cc32cd252e6fe4dcddb7ad03feb17b61c4af
+│   │   │   └── ac54bbac1b1419f7b3dc757eb1fd90eb6447bc
+│   │   ├── 51
+│   │   │   └── 89822cf388247aca01b32752899295e067a37c
+│   │   ├── 52
+│   │   │   ├── 9b2a5814ee18f1378b2e29890b7da84feea00c
+│   │   │   └── ba9b216d9869c5287b32a7f04d381a211fe9cc
+│   │   ├── 54
+│   │   │   └── da1e9b00834c1b65c6ec8f7c831bccf04b7dc3
+│   │   ├── 56
+│   │   │   ├── 05a81762a18336ddeee1907b3ca0bd35cea3a4
+│   │   │   └── 9167256dd908c43c3e3c32d26d93ad41b2bea2
+│   │   ├── 57
+│   │   │   └── 12fac30bbe8002221d76924113832eac23da9a
+│   │   ├── 58
+│   │   │   ├── 3a0f91af8ff606448ef91e73db08d942cd9b53
+│   │   │   └── 4ad0f9046944fe8b9e09a7c86c6f1b85148069
+│   │   ├── 59
+│   │   │   ├── e1b1c40b4da8e610fdd8478825a617b2393a28
+│   │   │   └── ed6e37b3ecd41f5abfc918111853d35dabd356
+│   │   ├── 5b
+│   │   │   └── 60a7561ac0cf7119d824c2dbfc89ca6b8a2c8e
+│   │   ├── 5c
+│   │   │   ├── 0724e4fa900cd4b07501988337f13b8044de99
+│   │   │   └── cabc2c4faa2f94f5d2dc33c3a659948c1f060c
+│   │   ├── 5d
+│   │   │   └── 761ce5f2c6d011a488695e488a838fdd3aa0fb
+│   │   ├── 5e
+│   │   │   ├── 657e09fb66fabf7eec7a4fc37375b29eb7d711
+│   │   │   ├── 796e91b62dfacfba7cbe71763fad0240d8308a
+│   │   │   └── a877a5c7d5debd7a2ad477dc67175c3e1b5bf1
+│   │   ├── 60
+│   │   │   ├── 000de634c9f33592e697c3a28a7c8e4c7680ab
+│   │   │   ├── 7ce9542db0b48511e882abdd80d202f745bb12
+│   │   │   └── 924b540c89baaec45055de95f06006c00ecf6e
+│   │   ├── 61
+│   │   │   └── eabf693d950c8e033309a17c77e038c1797320
+│   │   ├── 62
+│   │   │   ├── 62f5f5a2af88c3a583c8110515e74d1a71b41d
+│   │   │   └── 82795b44f94355b1f7ab93b80367f8bc01b37f
+│   │   ├── 63
+│   │   │   └── 82c747f74b8f8e7f800359c7865aa828d344c9
+│   │   ├── 64
+│   │   │   ├── 0545f107d6203f2690d1175c419ee62a44afde
+│   │   │   ├── 23d0e1a2ac26fca111f4bce008e7fd81296036
+│   │   │   └── 4a2c5e3194552b3782f2a1ee6c876a98892528
+│   │   ├── 65
+│   │   │   ├── 7d1f7ee7599fb854bee12083ea96785e47625f
+│   │   │   └── a18d8341a5276b8d80968224125829b8c56a35
+│   │   ├── 68
+│   │   │   ├── 487ce5113e2ff0f4d52a7852abadfcaba5adfd
+│   │   │   └── caea9aa3b964d8dfd5e3a6153f417306ef8c88
+│   │   ├── 69
+│   │   │   ├── 6ebb65500623cdf6775087b2302d28b23364fa
+│   │   │   └── c779fe03b4e8a58935e1a2cbe3fec94b668fd0
+│   │   ├── 6a
+│   │   │   ├── 24687eb679da856d3678b731c93fdaf1f57b1c
+│   │   │   └── d3f809e78aa72cfaf4026414483f7e33868daa
+│   │   ├── 6b
+│   │   │   ├── 05e7af39f447335969d21a4271d6d45ce87b8a
+│   │   │   ├── 656e259c3c8ecd3031fae8ee063df7aa40a7bb
+│   │   │   └── 8f44b10f5050fa360264bf198297b8e08e079c
+│   │   ├── 6c
+│   │   │   ├── 48f1ce5afe9ad8aeaccb5a4cb2d5143fcd9bdb
+│   │   │   └── e8e832c27572ba0ea37870d3edb9bee73b836f
+│   │   ├── 6d
+│   │   │   └── 5112c7aa19ebf6195eef17bb2ad09807243f66
+│   │   ├── 6f
+│   │   │   └── 1a33817442551173b2a7dec75910d83949a11e
+│   │   ├── 71
+│   │   │   └── be77cb0e6562debdd6eab794320c3f96eb70ac
+│   │   ├── 72
+│   │   │   ├── 474b7d45085b268d73e08f05d9928cbfa1dec3
+│   │   │   ├── 9b90ade71aebb4b451b0955fb2ac35c0b58e20
+│   │   │   ├── e0ffd6a7234dddccfc473e2aea005167a1e5f9
+│   │   │   └── ff1327277f7e6df4fb40450a78f4e4fe69f3ac
+│   │   ├── 73
+│   │   │   ├── 5fb58de8274e7701c01ea0110faf067bb95aad
+│   │   │   ├── 6603489a2d37baa57ab9f278fc393670124adc
+│   │   │   └── e5a2ec9769a521bc5e51bee735dac3d329ee10
+│   │   ├── 74
+│   │   │   └── c9cb39cf24179f7c5269998786cfa8390590ae
+│   │   ├── 77
+│   │   │   ├── 000c630ee3ac8cfa737371a17845b64f209ce5
+│   │   │   ├── 052b9d6d077aab5ac0ff0e00c3f66889ba35d8
+│   │   │   ├── 0e604478649ccd317fd7d1020fa32b5294c4b6
+│   │   │   ├── 13cd76bcafbf248dd421ccba98f6d29ed12ac3
+│   │   │   ├── 27869cd8c00b5eb5609dfcb54522f2ee34a7b9
+│   │   │   └── 6fb787664bb77d6e9f2b76afb78b4aaa85eb22
+│   │   ├── 78
+│   │   │   ├── 26d53b0d85d0a79d12fd48ff543d1b58a13fab
+│   │   │   └── d8049b4711873ce50822d9461553ef0b453b28
+│   │   ├── 79
+│   │   │   ├── 0b54380ce65a2afa1f57e8e3495f0185de0185
+│   │   │   ├── 762235ed0deced3eb68483b1eabaa52e66df3d
+│   │   │   └── fad899104df2c09e6331cc2289c1d6a31b4215
+│   │   ├── 7a
+│   │   │   └── db7016ae9ff6ff223b5986d6796427b27fa4d8
+│   │   ├── 7c
+│   │   │   └── 1b60ee44d79114d73b099abd7ccf95f390b039
+│   │   ├── 7e
+│   │   │   └── a1cc9664651645745f5b3c9b610bc4b433ed9c
+│   │   ├── 7f
+│   │   │   ├── 40c0cda783323f6ad4ee51bdea96ff3034c210
+│   │   │   ├── 9903f450d35538fe581c21661f68baae88ddbf
+│   │   │   └── ee026ea3b9451e9157a0bc6a6283a8a97f69d8
+│   │   ├── 80
+│   │   │   └── 9a142d3de4a45bbde9065cbb874d298e2f9c8d
+│   │   ├── 82
+│   │   │   └── 99145fd7f1c6e9f9e79b75c241306e4404ebac
+│   │   ├── 83
+│   │   │   └── 3876f68f72552635bf834b0ed9e09c764ce82e
+│   │   ├── 84
+│   │   │   ├── 2d179323c3476d9355f1d3fc6fa659347a2276
+│   │   │   ├── 3b92f7da75e053beaeeabbc984ea1ae2aa2d74
+│   │   │   └── 6fe29f2f5d1f69ec6a0178ed93a232a2955a17
+│   │   ├── 85
+│   │   │   ├── 2bddfa30f5014bbf544fb0a67762ed09d8c940
+│   │   │   └── b059e2976e0a608d157c7751b3fc75d92a7567
+│   │   ├── 86
+│   │   │   ├── 32fd1304784fb94a4e865ae044cdf211adfd0c
+│   │   │   └── fa211b85658f2beace82be0182c07ac7a2b4f7
+│   │   ├── 87
+│   │   │   ├── 9e3ce3583599aee38d6a166e354c0febc09ae4
+│   │   │   ├── c88103b571624c8fe122c78a0ac282540be3c4
+│   │   │   └── fd5912f1622f3e6f263f28779749280bb065a5
+│   │   ├── 88
+│   │   │   ├── 056ec4c3b92838ea2acbd8b31537881c847a8e
+│   │   │   ├── 7119a2f5a0cb90f6222df21a6b3f04bc88cc60
+│   │   │   └── 90de0eee398a2611610810bb85a8be6d30e971
+│   │   ├── 89
+│   │   │   └── e3eae918b7bd1f4907f2efae6957f221cb2324
+│   │   ├── 8a
+│   │   │   ├── 3268e1d3dacec525d8884bae3cd439afdd3d35
+│   │   │   ├── 74b07912d646fcb67962e83d3432ba3410628c
+│   │   │   └── a011647ba0d1ef1fb8637d25972bf48c69a127
+│   │   ├── 8b
+│   │   │   ├── 371d1f59880ad7ea744bc85778e631dd46b084
+│   │   │   └── ef185d3f578f3408786a3cd790534340ca2a29
+│   │   ├── 8c
+│   │   │   ├── 2500f019fb2355173284934d4e48ee77ca6866
+│   │   │   └── 35be705909d923999b07724dfe33da20b310d9
+│   │   ├── 8d
+│   │   │   └── 91b4217f7c22da823ba8217eacdb7e85040219
+│   │   ├── 8f
+│   │   │   ├── 235cdfa2352bdbda1955b98afee47ca695c09e
+│   │   │   ├── 2ad96597fcc065e716660fb8cb55d14c563c07
+│   │   │   └── 9b693772ce9b5758395892d4eb0f881896459b
+│   │   ├── 91
+│   │   │   ├── 9f10552242f767519e0391edc79e1bb5a53abb
+│   │   │   ├── df9f66fd4fa1fd3e6c49edfad5b4e1718de8d3
+│   │   │   └── f6acda4ff69e276b3382c15e870f6528f281a4
+│   │   ├── 93
+│   │   │   └── 355cfa7d84b24cf7a2f17c3a38e8ac43825bda
+│   │   ├── 94
+│   │   │   ├── 946be436ca7e545a5e10ba3d26b640d46ef6a7
+│   │   │   ├── 9d91687c74b561d8d0a1137b394d22dba0894b
+│   │   │   ├── d0f88da8329e8c726a2dc2849f4a3680c9d712
+│   │   │   ├── d2d9ca7a894eccd69e100f5045af39a46b5542
+│   │   │   └── e763b64db32fbc22ca01a9d699ce3bb37bdc2f
+│   │   ├── 95
+│   │   │   ├── 572c884b75ed34ad9d2612f286c056c3665703
+│   │   │   └── e0160106ed484110d9450189a453ed675a4efa
+│   │   ├── 97
+│   │   │   ├── 6676f0048b487dfaa46a81e033ae522a163b3d
+│   │   │   └── 6742bc8b6a215b969a9745255644c3c8a36c4e
+│   │   ├── 98
+│   │   │   └── 99050dc2274c01e5b9f04d9bccb8780402f02f
+│   │   ├── 99
+│   │   │   ├── 08c3f1c47e912e8c77686a50b414dc41c79a43
+│   │   │   ├── 617cba14b0615852221846966fc84571a727d7
+│   │   │   └── f619c5b6d2dac82bbba15f1ea7b39cf3f30f0f
+│   │   ├── 9b
+│   │   │   ├── 3bf1f1cfc18303e2c6b555dd989bc635c6f69d
+│   │   │   ├── 55edff19acb0707c777a8003079866239d6905
+│   │   │   └── c3e82b4d36de9c8ed990d83e9b27ff59832cde
+│   │   ├── 9c
+│   │   │   ├── 1a43e9481619133561cfe191b71642348089e0
+│   │   │   ├── 39bbec4f9bc26ddcfe3a0aaec695f464cc99a2
+│   │   │   ├── 4783170c15ba05299b4e96ee16c2f9492b4a56
+│   │   │   └── 7d1e5eff20ab3432a86ed4246ebb3e87d50d74
+│   │   ├── 9d
+│   │   │   ├── 18dd36d297d3d0e443ca230c2025cbaa06c8a2
+│   │   │   ├── 35d4fd99b7855cc7e02cb2b329a74c1060bc1f
+│   │   │   └── e1907707e17cb5d86feb7315b4cd2700439d3c
+│   │   ├── 9e
+│   │   │   └── 5804e4145e49a9764611754fb94e5320614d84
+│   │   ├── 9f
+│   │   │   └── 177c111e480fa3e17578d97b87790ebbc35af5
+│   │   ├── a0
+│   │   │   ├── a0545faa0c9dddfdb7085042a3cf441c21d66c
+│   │   │   └── e04be2baa6721c36c215497dc6d10e9c994571
+│   │   ├── a1
+│   │   │   └── 64a66818f11bd64a6b17da1041efb02a7237e1
+│   │   ├── a2
+│   │   │   └── c11f15e01f16b0558b1fdf454174be3305bd7c
+│   │   ├── a3
+│   │   │   └── 64fc4c00981aa7749728de43012ed6b20a0d27
+│   │   ├── a4
+│   │   │   ├── 60a42e512255dc782a25657e3d221be328d46d
+│   │   │   ├── 63e5c4c0b061102b0e42f9e2b8baf0c51007be
+│   │   │   ├── 8c99c0c46a6aed0d9ca55e1484c5953beec024
+│   │   │   └── 971d09201558be1106437a49f17560d9498738
+│   │   ├── a5
+│   │   │   └── e4f72d015e1bc67b883026c5b79f99279d0fa3
+│   │   ├── a6
+│   │   │   ├── 6d0e22dc4809d77be54db196ed3f068217a9a6
+│   │   │   ├── 84f384b3704602186d2e4034ae972b571da308
+│   │   │   ├── 9e8ed3e92c2fd419a83e9fb69a32ba00908c7d
+│   │   │   ├── ce5fa4d60220e43dbbe31be0496b600ee13d2b
+│   │   │   └── e7b7ffe611e9594d2168f5f8f21b12617ddb64
+│   │   ├── a8
+│   │   │   └── edd6c0319eb2623e6f028c3dd87e033a63bb83
+│   │   ├── a9
+│   │   │   └── 23731c2ea6a1dc954314dcea8b7aae140c8708
+│   │   ├── aa
+│   │   │   ├── ef44fd841e6b54ade131b3a5210e77802c7456
+│   │   │   └── f165cf87ac00ca56ede451b3ffe7edd720ff7a
+│   │   ├── ab
+│   │   │   ├── 09c4caead0319d09cac01a049550a04c2db8d9
+│   │   │   ├── 62b392a68d8d0a93944bfbc707e3119e8852ee
+│   │   │   └── efd8eb918118ed1b8bea768146f26ad24d675f
+│   │   ├── ac
+│   │   │   ├── 4caee1bf774d060a49fbc143dc01ccb3c71595
+│   │   │   └── 7995d0219865393fdd2bad122d4ec4cc7eede9
+│   │   ├── ad
+│   │   │   └── e36fcc8cfc11b754af46feaf773b0ade9d1b04
+│   │   ├── ae
+│   │   │   └── 5596941ecdd769679710d0fa34f0e3cf8ecae1
+│   │   ├── af
+│   │   │   └── 9984e43309d07b2e4b51aa75cca040c1a6ddd0
+│   │   ├── b0
+│   │   │   └── 61c1e839303f6f276704d077a43af71ad82fec
+│   │   ├── b1
+│   │   │   ├── 8bf754d8f2baa2710f1a29d1074499673bbeb3
+│   │   │   └── 9c80ce916efa2d12145e528f1d9593c4ad01aa
+│   │   ├── b2
+│   │   │   ├── 4550a494c71e86725bdd965b88b506400a9d88
+│   │   │   ├── 4bf91d1ed83896b9c87489095964ea6780d9b4
+│   │   │   ├── a2e27d60a098112aba7e580b5c991093435a4c
+│   │   │   └── e0f6ce0cb5c65df3f25595344924979017fef5
+│   │   ├── b4
+│   │   │   ├── 5563718eeea671e97c575fa1a1624d094d7b3c
+│   │   │   └── c5414bad804a55edb237bd9ac488d29f53e1c1
+│   │   ├── b5
+│   │   │   ├── 8a6ac8abe191dc68e1992f344bda88d813b5ab
+│   │   │   └── a7b10a255528917d76487c388679559a63a577
+│   │   ├── b6
+│   │   │   └── eaf5be568ed8d8904456254691ebf47cd2ca77
+│   │   ├── b8
+│   │   │   ├── 801c9b49b40607a9b5f0fadd1db056fba96b2c
+│   │   │   ├── 85e5972efd73fa27cfc7904ed782ce262587fb
+│   │   │   ├── 8bdeae12804ea346f6da84ab57ac322bd1c3b3
+│   │   │   └── e587a87fbad7de92c76d63c7bc347008b8d39a
+│   │   ├── b9
+│   │   │   ├── 39e5dbeec0c930b8bcc99600feb0cc63d42345
+│   │   │   └── a4689570cb0293989e42503eb6af3526af3387
+│   │   ├── ba
+│   │   │   ├── 56c8513171a7b01eb47f046cff469fff26db52
+│   │   │   ├── e10713b951c15f86a75b54905272836e0aa829
+│   │   │   ├── e6a63911b3d53b263ef56414794bbb60f4de8a
+│   │   │   └── edd4aee9fa4f33bf75b4696b74dce65c7600bc
+│   │   ├── bb
+│   │   │   └── 2125bc2246b1a3e4d28ab072027a3805773cdc
+│   │   ├── bc
+│   │   │   └── 1b412f21847665f8f5729a89f038879b521c70
+│   │   ├── bd
+│   │   │   ├── 411d11b5822a1c371b1a5e5d68a1bd4ed2af11
+│   │   │   ├── 4f435f4be52b858379956c259b020b10a35686
+│   │   │   └── 5d497adfcadbb2b111846d8a5dc3343b733a00
+│   │   ├── be
+│   │   │   ├── 62d76caec89fff2242e92104f0bbf627701baa
+│   │   │   └── ff0f58da824fe10d83fd937aef79471241dc96
+│   │   ├── bf
+│   │   │   ├── 438fe2d23e389ea12a2cbed31eaecc29d91ac6
+│   │   │   ├── 8a319d054d02986e431c37a8255ba3228839bc
+│   │   │   └── a07155b4f51bdca023e738dd3e90d426ee56cf
+│   │   ├── c0
+│   │   │   └── 87bb660d4d2b2c4af01503cc44e8f677c85753
+│   │   ├── c1
+│   │   │   ├── 4d532d793dc848ab213abbf98f24b787d66ab9
+│   │   │   └── d53f45237cf9c6e4a1e32f4ab62562f29a0635
+│   │   ├── c3
+│   │   │   └── 0340c81ddf67466dbd6ff666af0ca4fe1ebbfa
+│   │   ├── c4
+│   │   │   ├── 768d3ed795b2d10b03a285f55e836724a0188b
+│   │   │   ├── 986e336ed53c604287cf2c0eb9c10f1ca0e11d
+│   │   │   ├── ab2a2dae7b5debc7cca4e4baa73e52820f4d43
+│   │   │   ├── cfef7f8bd6f57d62a3463e5f15e5286ac413dd
+│   │   │   └── f625fdf02083a5783ab54a10c9d5ea58957f6c
+│   │   ├── c6
+│   │   │   ├── 9356754c5e4bebad215a064b6b9f8bf9f0650b
+│   │   │   ├── a8c8fd9ce03d30f63c4c6b28a6515367c732f1
+│   │   │   └── c9835b3c6a62b1c6e8620c3da05046f09055d0
+│   │   ├── c7
+│   │   │   ├── 1141d1ac2ae2afc176b6f7ff8f80fe908a60fe
+│   │   │   ├── 38da5212100407bc839db9489fd74cdc4c9fb8
+│   │   │   ├── de7aaa4a6bcf1b00dd91bdf01bc5bf7e65a768
+│   │   │   └── dec9728a7cfb2751cae1ceca20abe71fb31d08
+│   │   ├── c8
+│   │   │   ├── 53530dc48c3aa3c32b2059fcc4af100783dec1
+│   │   │   ├── cb879b9923251c1ee8bc902514091af04235d1
+│   │   │   └── ec4e6e4e4dde891ac74e3cab3121cb32ba0043
+│   │   ├── c9
+│   │   │   ├── 2717783815531afeac00cac12dde8f4d0f9867
+│   │   │   └── 283395aca50fa811dcc642c7f25bf387d4f64f
+│   │   ├── ca
+│   │   │   ├── b0dcfcf55a67ece85980bb1cec5cf219eaae60
+│   │   │   └── ea142342751380e1354f0543274d41028caa2b
+│   │   ├── cb
+│   │   │   ├── 616e4fd9ed59fc05fc0309551174608030153c
+│   │   │   └── dec149bdd262e95daeef268a754c349fd3974d
+│   │   ├── cc
+│   │   │   └── 1938fa457c5a6ad7555c8dcec5784664e1327f
+│   │   ├── cd
+│   │   │   ├── 18a33b0c1313272236cf6d4c3c60e3103223ff
+│   │   │   └── 3936c9053cd226e7b5ce2372cca1ceca8628bd
+│   │   ├── ce
+│   │   │   ├── 84f0df4b7b2e3244f1b2c7fb0160b15facd9ae
+│   │   │   └── a948d7a49d8cdc5769e31668dc2ad1846cb4d7
+│   │   ├── cf
+│   │   │   ├── e9bd704a5e3e9a020bc28badcff2de68ff1b2d
+│   │   │   └── fbc7c52c527bc7b9bd5ee3fe741b92863a9aa2
+│   │   ├── d0
+│   │   │   ├── 4ae0fe438a9b0f72049ffd546b960b9f5649c6
+│   │   │   └── fa467bf85126252e5580a8c51741b9e8ad5752
+│   │   ├── d1
+│   │   │   ├── 08ba2e2868de0af87f10b0b6cb728844ba9935
+│   │   │   └── 1c9b477e8767a9d33eff843046ef12917e477b
+│   │   ├── d2
+│   │   │   ├── 2d1de2857b10b67690547e21b91602342dd38e
+│   │   │   └── 46603843e6e1b6947306639cc232f217b978a7
+│   │   ├── d3
+│   │   │   ├── 1abab0510a1389aa2568b192de1a3b9566037d
+│   │   │   └── d9b26190b083a83740d20b88f2a8562be7a43f
+│   │   ├── d4
+│   │   │   └── c46a219a2bfe6ff8e470d266280b4ee91f8c10
+│   │   ├── d6
+│   │   │   └── 5779a44b6fa30de89b4d3b337750d01ca5d188
+│   │   ├── d7
+│   │   │   ├── 62188e82bc2d8730ea5ffb99283a3d8852dcd6
+│   │   │   └── ebcd60e6450827b51b2464eb4175220cec91f1
+│   │   ├── d9
+│   │   │   └── 2e8295dd994c91142e82d5705f627bc7d0a994
+│   │   ├── da
+│   │   │   ├── 0677a22a77efbfd541db11dde0041f96c830f9
+│   │   │   └── 7a3e3b501f651ac48eca0e1623bcce0d0a443d
+│   │   ├── db
+│   │   │   └── a8380a8339caaf996fe19b795b69ccb223b4e8
+│   │   ├── dc
+│   │   │   ├── 2b6ad321991285926fa84a3917909037d3bc23
+│   │   │   ├── 5773419a5a36f4c377e6b330cc28fb1bb18e00
+│   │   │   ├── 7408c5dd01aa3ac12da6310a05a802d0036a76
+│   │   │   └── 91e8005248a2612cd9e04cf28a42297dc95baf
+│   │   ├── dd
+│   │   │   ├── 2343a4588faac89ce481f66e55f35c2b24c45e
+│   │   │   ├── c9c20d6b0a87f53dfecff713a07c7a60eb955d
+│   │   │   └── ffa5d47844d83a13ea87dcd52f7e404376c339
+│   │   ├── df
+│   │   │   └── 5cd48b4dfafacd0a82db0f23841d7d23a22eb4
+│   │   ├── e0
+│   │   │   ├── 3ee502cb6e798015f85252706c412d6ac59753
+│   │   │   ├── 441f51adafb1d5e6a4c0f3316e2396dc25436f
+│   │   │   ├── 4efb621fd0ff4f7534440fd888c5bfb2139de7
+│   │   │   └── ed7991893fefaa8c9249ef3d216caf587d893c
+│   │   ├── e1
+│   │   │   └── 48b1a177f2060aeda3eb32ae6ce05357d2a569
+│   │   ├── e2
+│   │   │   └── 61a4d3c26ba024b18a934a184e3fa37f808d57
+│   │   ├── e3
+│   │   │   ├── 318b88651f2f68402b5fafc9225785caa3cc49
+│   │   │   └── 95a852aba091d3ce8fe663085081972456cd11
+│   │   ├── e7
+│   │   │   └── 42c5506099dceee83abaca3a21e6298dc947ae
+│   │   ├── e8
+│   │   │   ├── 474d40cf541fd663483c6437bdbf370b81177c
+│   │   │   ├── 73b0a86d4b9e287c5d6b42a0ad3f46b2971717
+│   │   │   ├── a9e606362e53aa730581b2a11bd6427735ac43
+│   │   │   └── ded20885516bce577dd496dc8c38361b208128
+│   │   ├── ed
+│   │   │   ├── 8338bb2299b5b644682032ffc9a0755179917c
+│   │   │   └── ea42aa2de39e9b3f1ae6b14e2d3c5ad3ab61e5
+│   │   ├── ee
+│   │   │   ├── 2aa18eb2557c280720637d8ec0e7967cad6b79
+│   │   │   ├── 8c4c3ae2c57ea6a7c7fefa253178a9377608b2
+│   │   │   ├── d96d62c65725fd3ee5b6362717853e85c8adbf
+│   │   │   └── db4bf60de9c501456a089c86289955cdc48ee4
+│   │   ├── ef
+│   │   │   ├── 7cc83cdc28fb500258415ec46e20d372cbac59
+│   │   │   └── d088a6087031aeaacc4dc711986b9babf2298d
+│   │   ├── f2
+│   │   │   ├── a4ef7ce38365db433e0954b7c937597e4c059f
+│   │   │   └── f482aeb83774a2608470e384baccdf9a8166ac
+│   │   ├── f3
+│   │   │   ├── 5117092f475507f5d8d6d56e793fff74183433
+│   │   │   └── bc11ee68850d35facbd95aa30c2cb06809e24a
+│   │   ├── f4
+│   │   │   ├── 8272754e9e8c607d3b0c2358f0953260dba953
+│   │   │   └── d401e7a7b45f8b04350e4715ca827f196543ca
+│   │   ├── f7
+│   │   │   └── 84855d78be4c2e1bcbc03f9f130412d8b69dc3
+│   │   ├── f8
+│   │   │   ├── b25a2710411d79a6bc8fc900a603203b43e579
+│   │   │   └── cfbbb28737173f3f56d47100db4ae4b97653b2
+│   │   ├── f9
+│   │   │   ├── 01911851a83dc8961f9b1c8d01798259ba41db
+│   │   │   ├── 27d549bf1b2ca69de9203c1d1ddba390cc1d75
+│   │   │   ├── 9dbf38238a289b2ca579cf374bdc91dd77a4a3
+│   │   │   ├── de77fbd9dc251f5281bcfa7ff1b1614b51c5b4
+│   │   │   ├── e3c414a8f16c80b4f0a91d0dd9484dabbbd51b
+│   │   │   └── f6a182f9ec4786266ea8460d3c863c8394a629
+│   │   ├── fa
+│   │   │   └── 76a6cd594c8f8c964ab802979b94b935387232
+│   │   ├── fb
+│   │   │   ├── 23242572a546169a3393c0b5e6c537f0c6326d
+│   │   │   ├── 5f77f5741a77e2900a359d5c0b4fbc8d6e9f3d
+│   │   │   └── 8df6d27e96f33f844489a009011b410f060bd0
+│   │   ├── fc
+│   │   │   ├── 0eb76812357c8bf45e79569de239b829834a45
+│   │   │   └── 724da0517ab0c870a8c01e6464eac23a1dac2d
+│   │   ├── fd
+│   │   │   ├── 47e97d067a58ec75ea323a686b6ac94febdcc9
+│   │   │   ├── 4d940290c83eda2e0aae4368f5dc8819a99f48
+│   │   │   └── b26e566b4b03d2eaa7b286c5ea7c0aac9e3238
+│   │   ├── fe
+│   │   │   ├── 22ec69fd7694871ee4d236ab8efa3e2c6fbf76
+│   │   │   └── da25663282768273837fad0037a8b75ad91b25
+│   │   ├── ff
+│   │   │   ├── 3859b1f856fa5e41de30d4731aad881fb8538b
+│   │   │   ├── 3937b2001d021a11b03ab5751ab91603269f56
+│   │   │   └── c978f23e076d13783b4c4f20d63eec08dc754b
+│   │   ├── info
+│   │   └── pack
+│   │       ├── pack-3577b90dc7ce6c867cd1925692c68cd8213d284d.idx
+│   │       ├── pack-3577b90dc7ce6c867cd1925692c68cd8213d284d.pack
+│   │       ├── pack-4f7540beb0ae0124f9f47c6078539a8ebcf9adbb.idx
+│   │       └── pack-4f7540beb0ae0124f9f47c6078539a8ebcf9adbb.pack
+│   ├── ORIG_HEAD
+│   ├── packed-refs
+│   └── refs
+│       ├── heads
+│       │   └── main
+│       ├── remotes
+│       │   └── origin
+│       │       ├── HEAD
+│       │       └── main
+│       └── tags
+├── .gitignore
+├── hubconf.py
+├── LICENSE
+├── logs
+│   ├── BLT_9181436.err
+│   ├── BLT_9181436.out
+│   ├── BLT_9181950.err
+│   ├── BLT_9181950.out
+│   ├── BLT_9190009.err
+│   ├── BLT_9190009.out
+│   ├── BLT_9190011.err
+│   ├── BLT_9190011.out
+│   ├── BLT_9192512.err
+│   ├── BLT_9192512.out
+│   ├── BLT_9192513.err
+│   ├── BLT_9192513.out
+│   ├── net_params
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260313_233530
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260313_233530_BEST.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260313_233530_epoch_0.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952_LAST.pth
+│   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225_BEST.pth
+│   │   │   ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225_epoch_0.pth
+│   │   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225_LAST.pth
+│   │   └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840
+│   │       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840_BEST.pth
+│   │       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840_epoch_0.pth
+│   │       └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840_LAST.pth
+│   └── perf_logs
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260313_233530
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202
+│       │   ├── accuracy_plot.png
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260314_001202.npz
+│       │   ├── loss_plot.png
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_204431.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-128__20260317_222220.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-16__20260319_182912.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-4__20260321_203121.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-6__20260321_203121.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-64__20260319_104425.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-8__20260321_094952.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       ├── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225
+│       │   ├── accuracy_plot.png
+│       │   ├── args.json
+│       │   ├── config.json
+│       │   ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260317_222225.npz
+│       │   ├── loss_plot.png
+│       │   ├── model_architecture.txt
+│       │   ├── model_source.py
+│       │   ├── param_count.json
+│       │   ├── pca_dimensionality_90.png
+│       │   ├── pca_dimensionality_95.png
+│       │   ├── pca_dimensionality_99.png
+│       │   ├── pca_results_streaming.npz
+│       │   ├── recurrence_gain_heatmap.png
+│       │   ├── timestep_curve_last_epoch.png
+│       │   ├── timestep_table.png
+│       │   ├── training_summary_table.png
+│       │   ├── val_accuracy_over_timesteps_5epochs.png
+│       │   └── val_accuracy_over_timesteps_best_epoch.png
+│       └── blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840
+│           ├── accuracy_plot.png
+│           ├── args.json
+│           ├── config.json
+│           ├── loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-96__20260318_090840.npz
+│           ├── loss_plot.png
+│           ├── model_architecture.txt
+│           ├── model_source.py
+│           ├── param_count.json
+│           ├── pca_dimensionality_90.png
+│           ├── pca_dimensionality_95.png
+│           ├── pca_dimensionality_99.png
+│           ├── pca_results_streaming.npz
+│           ├── recurrence_gain_heatmap.png
+│           ├── timestep_curve_last_epoch.png
+│           ├── timestep_table.png
+│           ├── training_summary_table.png
+│           ├── val_accuracy_over_timesteps_5epochs.png
+│           └── val_accuracy_over_timesteps_best_epoch.png
+├── MANIFEST.in
+├── network_diagram.png
+├── README.md
+├── requirements.txt
+├── run_blt_vs_miniecoset_PCA_10.sh
+├── run_blt_vs_miniecoset_PCA_11.sh
+├── run_blt_vs_miniecoset_PCA_12.sh
+├── run_blt_vs_miniecoset_PCA_1.sh
+├── run_blt_vs_miniecoset_PCA_2.sh
+├── run_blt_vs_miniecoset_PCA_3.sh
+├── run_blt_vs_miniecoset_PCA_4.sh
+├── run_blt_vs_miniecoset_PCA_5.sh
+├── run_blt_vs_miniecoset_PCA_6.sh
+├── run_blt_vs_miniecoset_PCA_7.sh
+├── run_blt_vs_miniecoset_PCA_8.sh
+├── run_blt_vs_miniecoset_PCA_9.sh
+├── setup.py
+├── slurm-9101251.out
+├── structure.tx
+├── torchinductor_lemoehlenkam
+└── turtle.jpg
+
+262 directories, 813 files

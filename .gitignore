@@ -22,3 +22,7 @@ blt_vs_model/training_code/logs/
 # Python cache
 __pycache__/
 *.pyc
+
+logs/
+data/
+*.out

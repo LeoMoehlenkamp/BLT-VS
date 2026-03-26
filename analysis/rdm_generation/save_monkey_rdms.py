@@ -99,12 +99,12 @@ save_path = path.join(savedir, path.basename(rdm_path)[:-4] + ".svg")
 plt.savefig(save_path, dpi=800, bbox_inches="tight")
 plt.close()
 
-# optional: also save raw data for later use
+"""# optional: also save raw data for later use
 np.savez_compressed(
     path.join(savedir, path.basename(rdm_path)[:-4] + ".npz"),
     time=np.array(time),
     rdms=np.array(rdms, dtype=object),
     sort_idx=sort_idx,
-)
+)"""
 
 print(f"Saved panel plot to: {save_path}")

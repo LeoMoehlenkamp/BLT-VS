@@ -101,7 +101,7 @@ for i in range(n_panels):
     rdm = rdm[sort_idx][:, sort_idx]
 
     plt.subplot(1, n_panels, i + 1)
-    plt.imshow(rdm, rasterized=True, cmap="RdBu_r")
+    plt.imshow(rdm, rasterized=True)
     plt.gca().axis("off")
     plt.title(f"{t_panel}ms")
 

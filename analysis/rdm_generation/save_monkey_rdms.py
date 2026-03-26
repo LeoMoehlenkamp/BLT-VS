@@ -75,6 +75,26 @@ sort_idx = get_rdm_design_sort_indices(
 time = rdm_data["time"]
 rdms = rdm_data["rdms"]
 
+# NEW: store all processed RDMs for later comparison
+rdms_sorted_all = []
+rdms_ranked_sorted_all = []
+
+for i in range(len(time)):
+    rdm_raw = rdms[i]
+
+    rdm_square = squareform(rdm_raw)
+    rdm_sorted = rdm_square[sort_idx][:, sort_idx]
+
+    rdm_ranked = rankdata(rdm_raw)
+    rdm_ranked = squareform(rdm_ranked)
+    rdm_ranked_sorted = rdm_ranked[sort_idx][:, sort_idx]
+
+    rdms_sorted_all.append(rdm_sorted)
+    rdms_ranked_sorted_all.append(rdm_ranked_sorted)
+
+rdms_sorted_all = np.array(rdms_sorted_all, dtype=np.float32)
+rdms_ranked_sorted_all = np.array(rdms_ranked_sorted_all, dtype=np.float32)
+
 n_panels = len(t_select)
 full_width = FULL_PANEL_SIZE[0]
 panel_size = full_width / n_panels
@@ -91,7 +111,7 @@ for i in range(n_panels):
     rdm = rdm[sort_idx][:, sort_idx]
 
     plt.subplot(1, n_panels, i + 1)
-    plt.imshow(rdm, rasterized=True)
+    plt.imshow(rdm, rasterized=True, cmap="RdBu_r")
     plt.gca().axis("off")
     plt.title(f"{t_panel}ms")
 
@@ -99,12 +119,14 @@ save_path = path.join(savedir, path.basename(rdm_path)[:-4] + ".svg")
 plt.savefig(save_path, dpi=800, bbox_inches="tight")
 plt.close()
 
-"""# optional: also save raw data for later use
+# NEW: save numeric RDM values for later comparison
 np.savez_compressed(
-    path.join(savedir, path.basename(rdm_path)[:-4] + ".npz"),
+    path.join(savedir, path.basename(rdm_path)[:-4] + "_processed.npz"),
     time=np.array(time),
-    rdms=np.array(rdms, dtype=object),
-    sort_idx=sort_idx,
-)"""
+    sort_idx=np.array(sort_idx),
+    rdms_sorted=rdms_sorted_all,
+    rdms_ranked_sorted=rdms_ranked_sorted_all,
+)
 
 print(f"Saved panel plot to: {save_path}")
+print(f"Saved processed RDM data to: {path.join(savedir, path.basename(rdm_path)[:-4] + '_processed.npz')}")

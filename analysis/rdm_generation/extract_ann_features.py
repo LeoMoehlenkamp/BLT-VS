@@ -121,7 +121,7 @@ class MonkeyStimuliDataset(Dataset):
         self.transform = transform
 
         self.image_paths = [
-            os.path.join(image_root, fname)
+            os.path.join(image_root, fname.replace(".jpg", ".bmp"))
             for fname in self.df["filenames"]
         ]
 

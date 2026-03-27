@@ -69,7 +69,6 @@ def main():
     parser.add_argument("--monkey_processed_path", type=str, required=True)
     parser.add_argument("--save_dir", type=str, default="analysis_outputs/ann_rdms")
     parser.add_argument("--plot_panels", type=int, default=1)
-    parser.add_argument("--panel_area", type=str, default="V4")
     args = parser.parse_args()
 
     os.makedirs(args.save_dir, exist_ok=True)
@@ -104,8 +103,7 @@ def main():
         "distance_metric": np.array(DISTANCE_METRIC),
     }
 
-    panel_rdms = []
-    panel_titles = []
+    panel_data = {area: {"rdms": [], "titles": []} for area in AREAS}
 
     for area in AREAS:
         timesteps = extract_available_timesteps(ann_data, area)
@@ -171,9 +169,8 @@ def main():
             all_save_dict[f"{area}_t{t}_rdm_sorted"] = rdm_sorted.astype(np.float32)
             all_save_dict[f"{area}_t{t}_rdm_ranked_sorted"] = rdm_ranked_sorted.astype(np.float32)
 
-            if area == args.panel_area:
-                panel_rdms.append(rdm_sorted.astype(np.float32))
-                panel_titles.append(f"{area} t{t}")
+            panel_data[area]["rdms"].append(rdm_sorted.astype(np.float32))
+            panel_data[area]["titles"].append(f"{area} t{t}")
 
         if len(saved_timesteps) > 0:
             all_save_dict[f"{area}_timesteps"] = np.array(saved_timesteps, dtype=np.int32)
@@ -184,23 +181,30 @@ def main():
     np.savez_compressed(save_base + ".npz", **all_save_dict)
     print(f"\nSaved ANN RDMs to: {save_base + '.npz'}")
 
-    if args.plot_panels and len(panel_rdms) > 0:
-        n_panels = len(panel_rdms)
-        full_width = FULL_PANEL_SIZE[0]
-        panel_size = full_width / max(n_panels, 1)
+    if args.plot_panels:
+        for area in AREAS:
+            area_rdms = panel_data[area]["rdms"]
+            area_titles = panel_data[area]["titles"]
 
-        plt.figure(figsize=(full_width, panel_size))
+            if len(area_rdms) == 0:
+                continue
 
-        for i in range(n_panels):
-            plt.subplot(1, n_panels, i + 1)
-            plt.imshow(panel_rdms[i], rasterized=True)
-            plt.gca().axis("off")
-            plt.title(panel_titles[i])
+            n_panels = len(area_rdms)
+            full_width = FULL_PANEL_SIZE[0]
+            panel_size = full_width / max(n_panels, 1)
 
-        panel_path = save_base + f"_{args.panel_area}_panel.svg"
-        plt.savefig(panel_path, dpi=800, bbox_inches="tight")
-        plt.close()
-        print(f"Saved panel plot to: {panel_path}")
+            plt.figure(figsize=(full_width, panel_size))
+
+            for i in range(n_panels):
+                plt.subplot(1, n_panels, i + 1)
+                plt.imshow(area_rdms[i], rasterized=True)
+                plt.gca().axis("off")
+                plt.title(area_titles[i])
+
+            panel_path = save_base + f"_{area}_panel.svg"
+            plt.savefig(panel_path, dpi=800, bbox_inches="tight")
+            plt.close()
+            print(f"Saved panel plot to: {panel_path}")
 
 
 if __name__ == "__main__":

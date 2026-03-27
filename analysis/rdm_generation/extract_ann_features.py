@@ -12,14 +12,12 @@ from training_code.models.helper_funcs import get_network_model
 import os
 import sys
 
-PROJECT_ROOT = "/share/klab/danthes/lemoehlenkam/BLT-VS"
-TRAINING_ROOT = os.path.join(PROJECT_ROOT, "training_code")
+# 🔥 automatisch den Projekt-Root finden
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-if TRAINING_ROOT not in sys.path:
-    sys.path.insert(0, TRAINING_ROOT)
 
 # ============================
 # ARGUMENTS

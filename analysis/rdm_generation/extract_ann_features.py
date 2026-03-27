@@ -8,8 +8,18 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torchvision.transforms as T
 import argparse
+from training_code.models.helper_funcs import get_network_model
+import os
+import sys
 
-from models.helper_funcs import get_network_model
+PROJECT_ROOT = "/share/klab/danthes/lemoehlenkam/BLT-VS"
+TRAINING_ROOT = os.path.join(PROJECT_ROOT, "training_code")
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+if TRAINING_ROOT not in sys.path:
+    sys.path.insert(0, TRAINING_ROOT)
 
 # ============================
 # ARGUMENTS

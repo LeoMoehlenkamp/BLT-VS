@@ -1,6 +1,7 @@
 # automatisch den Projekt-Root finden
 import os
 import json
+import sys
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 
@@ -16,8 +17,6 @@ from PIL import Image
 import torchvision.transforms as T
 import argparse
 from blt_vs_model.training_code.models.helper_funcs import get_network_model
-import os
-import sys
 
 # ============================
 # ARGUMENTS

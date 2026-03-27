@@ -1,5 +1,12 @@
+# automatisch den Projekt-Root finden
 import os
 import json
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import torch
 import numpy as np
 import pandas as pd
@@ -8,16 +15,9 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torchvision.transforms as T
 import argparse
-from training_code.models.helper_funcs import get_network_model
+from blt_vs_model.training_code.models.helper_funcs import get_network_model
 import os
 import sys
-
-# 🔥 automatisch den Projekt-Root finden
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
-
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
 
 # ============================
 # ARGUMENTS

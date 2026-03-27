@@ -1,13 +1,21 @@
-# automatisch den Projekt-Root finden
+# ============================
+# SETUP PATH
+# ============================
+
 import os
-import json
 import sys
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, "../../"))
 
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# ============================
+# IMPORTS
+# ============================
+
+import json
 import torch
 import numpy as np
 import pandas as pd
@@ -16,6 +24,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 import torchvision.transforms as T
 import argparse
+
 from blt_vs_model.training_code.models.helper_funcs import get_network_model
 
 # ============================
@@ -62,7 +71,7 @@ first_signal = {
 }
 
 # ============================
-# LOAD MODEL AUTOMATICALLY
+# LOAD MODEL
 # ============================
 
 def load_model_from_name(model_name):
@@ -96,9 +105,7 @@ def load_model_from_name(model_name):
     state_dict = torch.load(weight_path, map_location="cpu")
 
     # Fix DataParallel
-    new_state_dict = {}
-    for k, v in state_dict.items():
-        new_state_dict[k.replace("module.", "")] = v
+    new_state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
 
     model.load_state_dict(new_state_dict)
 
@@ -108,7 +115,6 @@ def load_model_from_name(model_name):
     print("Model ready.")
 
     return model, hyp
-
 
 # ============================
 # DATASET
@@ -137,21 +143,16 @@ class MonkeyStimuliDataset(Dataset):
 
         return img, idx
 
-
 # ============================
-# TRANSFORMS
+# TRANSFORMS (MATCH TRAINING!)
 # ============================
 
 transform = T.Compose([
     T.Resize(224),
     T.CenterCrop(224),
     T.ToTensor(),
-    T.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
+    T.Lambda(lambda x: 2*x - 1)  # 🔥 CRITICAL
 ])
-
 
 # ============================
 # LOAD DATA
@@ -162,12 +163,11 @@ dataset = MonkeyStimuliDataset(CSV_PATH, IMAGE_ROOT, transform)
 loader = DataLoader(
     dataset,
     batch_size=BATCH_SIZE,
-    shuffle=False,  # CRITICAL
+    shuffle=False,
     num_workers=4
 )
 
 print(f"Loaded {len(dataset)} images")
-
 
 # ============================
 # LOAD MODEL
@@ -176,7 +176,6 @@ print(f"Loaded {len(dataset)} images")
 model, hyp = load_model_from_name(MODEL_NAME)
 
 timesteps = list(range(model.timesteps))
-
 
 # ============================
 # FEATURE STORAGE
@@ -187,6 +186,7 @@ features = {
     for area in AREAS
 }
 
+all_indices = []
 
 # ============================
 # EXTRACTION
@@ -194,12 +194,14 @@ features = {
 
 with torch.no_grad():
 
-    for i, (imgs, indices) in enumerate(tqdm(loader)):
-
-        if i > 5:
-            break
+    for imgs, indices in tqdm(loader):
 
         imgs = imgs.to(DEVICE)
+
+        # optional debug
+        print(imgs.min().item(), imgs.max().item())
+
+        all_indices.extend(indices.numpy())
 
         _, activations = model(
             imgs,
@@ -232,7 +234,6 @@ with torch.no_grad():
 
                 features[area][t].append(feat.detach().cpu())
 
-
 # ============================
 # CONCAT
 # ============================
@@ -246,7 +247,6 @@ for area in features:
         else:
             features[area][t] = None
 
-
 # ============================
 # SAVE
 # ============================
@@ -258,19 +258,21 @@ save_dict = {}
 for area in AREAS:
     for t in timesteps:
         key = f"{area}_t{t}"
-        save_dict[key] = features[area][t]
+        if features[area][t] is not None:
+            save_dict[key] = features[area][t]
+
+# Save indices for alignment
+save_dict["indices"] = np.array(all_indices)
 
 np.savez_compressed(SAVE_PATH, **save_dict)
 
 print(f"Saved to: {SAVE_PATH}")
 
-
 # ============================
-# CHECK
+# QUICK CHECK
 # ============================
 
-for area in AREAS:
-    for t in timesteps:
-        if features[area][t] is not None:
-            print(f"{area}_t{t}: {features[area][t].shape}")
-            break
+for key in save_dict:
+    if key != "indices":
+        print(f"{key}: {save_dict[key].shape}")
+        break

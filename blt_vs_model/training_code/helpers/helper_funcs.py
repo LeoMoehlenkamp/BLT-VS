@@ -414,7 +414,7 @@ def calculate_class_weights_from_h5(labels):
     print(f"Minimum count per class: {min_count}")
     print(f"Maximum count per class: {max_count}")
 
-    # Normalize weights (optional)
+    # Normalize weights
     class_weights = np.array(class_weights) / sum(class_weights)
 
     # Convert to a tensor for use in PyTorch

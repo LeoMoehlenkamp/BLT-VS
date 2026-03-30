@@ -29,6 +29,7 @@ mkdir -p logs
 
 source ~/startup_conda.sh
 conda activate blt_vs
+export PYTHONWARNINGS="ignore::FutureWarning"
 
 echo "Conda env: $CONDA_DEFAULT_ENV"
 which python

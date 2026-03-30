@@ -228,7 +228,7 @@ with torch.no_grad():
                     act = act["bu"]
 
                 if torch.isnan(act).any():
-                    continue
+                    raise ValueError(f"NaNs found in {area} at timestep {t}")
 
                 feat = act.mean(dim=[2,3])
 
@@ -246,6 +246,20 @@ for area in features:
             features[area][t] = torch.cat(features[area][t], dim=0).numpy()
         else:
             features[area][t] = None
+
+# ============================
+# CONSISTENCY CHECK
+# ============================
+
+n_expected = len(dataset)
+
+for area in AREAS:
+    for t in timesteps:
+        arr = features[area][t]
+        if arr is not None and arr.shape[0] != n_expected:
+            raise ValueError(
+                f"{area}_t{t} has {arr.shape[0]} samples, expected {n_expected}"
+            )
 
 # ============================
 # SAVE

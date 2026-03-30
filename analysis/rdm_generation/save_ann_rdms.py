@@ -66,7 +66,7 @@ def extract_available_timesteps(npz_file, area):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--features_path", type=str, required=True)
-    parser.add_argument("--monkey_processed_path", type=str, required=True)
+    parser.add_argument("--monkey_processed_path", type=str, default = "analysis_outputs/monkey_rdms/rdm_trajectory_panels_mua/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_mua_processed.npz")
     parser.add_argument("--save_dir", type=str, default="analysis_outputs/ann_rdms")
     parser.add_argument("--plot_panels", type=int, default=1)
     args = parser.parse_args()
@@ -169,7 +169,7 @@ def main():
             all_save_dict[f"{area}_t{t}_rdm_sorted"] = rdm_sorted.astype(np.float32)
             all_save_dict[f"{area}_t{t}_rdm_ranked_sorted"] = rdm_ranked_sorted.astype(np.float32)
 
-            panel_data[area]["rdms"].append(rdm_sorted.astype(np.float32))
+            panel_data[area]["rdms"].append(rdm_ranked_sorted.astype(np.float32))
             panel_data[area]["titles"].append(f"{area} t{t}")
 
         if len(saved_timesteps) > 0:

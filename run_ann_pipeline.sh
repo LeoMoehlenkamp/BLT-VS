@@ -57,7 +57,7 @@ fi
 
 echo ""
 echo "Step 2/2: Generate ANN RDMs"
-python analysis/rdm_generation/generate_ann_rdms.py \
+python analysis/rdm_generation/save_ann_rdms.py \
     --features_path "$FEATURES_PATH" \
     --monkey_processed_path "$MONKEY_PROCESSED_PATH" \
     --save_dir "$SAVE_DIR" \

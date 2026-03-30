@@ -226,13 +226,11 @@ def main():
                 figsize=(2.6 * n_cols, 2.4 * n_rows)
             )
 
-            # Falls nur 1 Zeile oder 1 Spalte existiert
             if n_rows == 1:
                 axes = np.expand_dims(axes, axis=0)
             if n_cols == 1:
                 axes = np.expand_dims(axes, axis=1)
 
-            # Mapping: area -> timestep -> rdm
             panel_lookup = {}
             for area in AREAS:
                 panel_lookup[area] = {}
@@ -245,23 +243,23 @@ def main():
                     ax = axes[row, col]
 
                     if t in panel_lookup[area]:
-                        ax.imshow(panel_lookup[area][t], rasterized=True)
+                        ax.imshow(panel_lookup[area][t], rasterized=True, interpolation="nearest")
                     ax.axis("off")
 
                     if row == 0:
                         ax.set_title(f"t{t}", fontsize=10)
 
-            # Area names links vor jede Zeile
+            plt.suptitle(f"{model_name} - all areas x timesteps", fontsize=14)
+            plt.tight_layout(rect=[0.08, 0, 1, 0.97])
+
+            # Area names NACH tight_layout setzen
             for row, area in enumerate(AREAS):
                 pos = axes[row, 0].get_position()
                 y_center = (pos.y0 + pos.y1) / 2
-                fig.text(0.02, y_center, area, va="center", ha="right", fontsize=12)
+                fig.text(0.04, y_center, area, va="center", ha="right", fontsize=12)
 
-            plt.suptitle(f"{model_name} - all areas x timesteps", fontsize=14)
-            plt.tight_layout(rect=[0.06, 0, 1, 0.97])
-
-            combined_path = save_base + "_combined_panel.svg"
-            plt.savefig(combined_path, dpi=800, bbox_inches="tight")
+            combined_path = save_base + "_combined_panel.png"
+            plt.savefig(combined_path, dpi=200, bbox_inches="tight")
             plt.close()
 
             print(f"Saved combined panel plot to: {combined_path}")

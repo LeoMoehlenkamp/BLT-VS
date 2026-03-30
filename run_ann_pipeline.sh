@@ -9,7 +9,7 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-360__20260317_114759"
 USE_BEST=1
 BATCH_SIZE=32
 

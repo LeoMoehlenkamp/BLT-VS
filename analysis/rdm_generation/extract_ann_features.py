@@ -194,12 +194,9 @@ all_indices = []
 
 with torch.no_grad():
 
-    for imgs, indices in tqdm(loader):
+    for imgs, indices in tqdm(loader, file=sys.stdout):
 
         imgs = imgs.to(DEVICE)
-
-        # optional debug
-        print(imgs.min().item(), imgs.max().item())
 
         all_indices.extend(indices.numpy())
 

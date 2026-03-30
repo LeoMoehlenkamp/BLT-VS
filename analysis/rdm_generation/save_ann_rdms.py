@@ -205,6 +205,63 @@ def main():
             plt.savefig(panel_path, dpi=800, bbox_inches="tight")
             plt.close()
             print(f"Saved panel plot to: {panel_path}")
+        
+        
+        # ---------------------------------
+        # Combined plot: all areas x timesteps
+        # ---------------------------------
+        all_timesteps = sorted({
+            int(title.split(" t")[1])
+            for area in AREAS
+            for title in panel_data[area]["titles"]
+        })
+
+        if len(all_timesteps) > 0:
+            n_rows = len(AREAS)
+            n_cols = len(all_timesteps)
+
+            fig, axes = plt.subplots(
+                n_rows,
+                n_cols,
+                figsize=(2.5 * n_cols, 2.5 * n_rows)
+            )
+
+            # Falls nur 1 Zeile oder 1 Spalte existiert
+            if n_rows == 1:
+                axes = np.expand_dims(axes, axis=0)
+            if n_cols == 1:
+                axes = np.expand_dims(axes, axis=1)
+
+            # Mapping: area -> timestep -> rdm
+            panel_lookup = {}
+            for area in AREAS:
+                panel_lookup[area] = {}
+                for rdm, title in zip(panel_data[area]["rdms"], panel_data[area]["titles"]):
+                    t = int(title.split(" t")[1])
+                    panel_lookup[area][t] = rdm
+
+            for row, area in enumerate(AREAS):
+                for col, t in enumerate(all_timesteps):
+                    ax = axes[row, col]
+
+                    if t in panel_lookup[area]:
+                        ax.imshow(panel_lookup[area][t], rasterized=True)
+                    ax.axis("off")
+
+                    if row == 0:
+                        ax.set_title(f"t{t}", fontsize=10)
+
+                    if col == 0:
+                        ax.set_ylabel(area, fontsize=10)
+
+            plt.suptitle(f"{model_name} - all areas x timesteps", fontsize=14)
+            plt.tight_layout(rect=[0, 0, 1, 0.97])
+
+            combined_path = save_base + "_combined_panel.svg"
+            plt.savefig(combined_path, dpi=800, bbox_inches="tight")
+            plt.close()
+
+            print(f"Saved combined panel plot to: {combined_path}")
 
 
 if __name__ == "__main__":

@@ -48,6 +48,23 @@ def extract_available_timesteps(npz_file, area):
     return sorted(timesteps)
 
 
+def get_area_color_limits(area_rdms):
+    if len(area_rdms) == 0:
+        return None, None
+
+    offdiag_vals = []
+    for rdm in area_rdms:
+        mask = ~np.eye(rdm.shape[0], dtype=bool)
+        offdiag_vals.append(rdm[mask])
+
+    offdiag_vals = np.concatenate(offdiag_vals)
+
+    vmin = float(np.min(offdiag_vals))
+    vmax = float(np.max(offdiag_vals))
+
+    return vmin, vmax
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -171,6 +188,15 @@ def main():
     # ---------------------------
     if args.plot_panels:
 
+        area_color_limits = {}
+        if args.rdm_type == "raw":
+            for area in AREAS:
+                area_rdms = panel_data[area]["rdms"]
+                if len(area_rdms) > 0:
+                    area_color_limits[area] = get_area_color_limits(area_rdms)
+                else:
+                    area_color_limits[area] = (None, None)
+
         # ---------------------------
         # Einzelpanels pro Area
         # ---------------------------
@@ -187,12 +213,16 @@ def main():
 
             plt.figure(figsize=(full_width, panel_size))
 
+            area_vmin, area_vmax = area_color_limits.get(area, (None, None))
+
             for i in range(n_panels):
                 plt.subplot(1, n_panels, i + 1)
 
-                im = plt.imshow(area_rdms[i], rasterized=True)
                 if args.rdm_type == "raw":
+                    im = plt.imshow(area_rdms[i], rasterized=True, vmin=area_vmin, vmax=area_vmax)
                     plt.colorbar(im, fraction=0.046, pad=0.04)
+                else:
+                    im = plt.imshow(area_rdms[i], rasterized=True)
 
                 plt.gca().axis("off")
                 plt.title(f"{area_titles[i]} ({args.metric})")
@@ -238,13 +268,22 @@ def main():
                     panel_lookup[area][t] = rdm
 
             for row, area in enumerate(AREAS):
+                area_vmin, area_vmax = area_color_limits.get(area, (None, None))
+
                 for col, t in enumerate(all_timesteps):
                     ax = axes[row, col]
 
                     if t in panel_lookup[area]:
-                        im = ax.imshow(panel_lookup[area][t], interpolation="nearest")
                         if args.rdm_type == "raw":
+                            im = ax.imshow(
+                                panel_lookup[area][t],
+                                interpolation="nearest",
+                                vmin=area_vmin,
+                                vmax=area_vmax
+                            )
                             fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+                        else:
+                            im = ax.imshow(panel_lookup[area][t], interpolation="nearest")
 
                     ax.axis("off")
 

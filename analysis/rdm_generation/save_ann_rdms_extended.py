@@ -55,7 +55,7 @@ def main():
     parser.add_argument("--monkey_processed_path", type=str, default="analysis_outputs/monkey_rdms/rdm_trajectory_panels_mua/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_mua_processed.npz")
     parser.add_argument("--save_dir", type=str, default="analysis_outputs/ann_rdms")
 
-    # 🔥 NEU
+    # NEU
     parser.add_argument("--metric", type=str, default=None,
                         help="Distance metric (e.g. cosine, euclidean)")
     parser.add_argument("--rdm_type", type=str, default=None,
@@ -66,7 +66,7 @@ def main():
 
     args = parser.parse_args()
 
-    # 🔥 DEFAULT LOGIC
+    # DEFAULT LOGIC
     if args.metric is None:
         args.metric = "cosine"
 
@@ -126,7 +126,7 @@ def main():
 
             features_ordered = reorder_features_to_original_index(features, indices)
 
-            # 🔥 RDM berechnen
+            # RDM berechnen
             rdm_condensed, rdm_square = compute_rdm_from_features(
                 features_ordered,
                 metric=args.metric
@@ -139,7 +139,7 @@ def main():
             rdm_ranked_square = squareform(rdm_ranked)
             rdm_ranked_sorted = rdm_ranked_square[sort_idx][:, sort_idx]
 
-            # 🔥 Auswahl
+            # Auswahl
             if args.rdm_type == "raw":
                 rdm_final = rdm_sorted
             else:
@@ -148,7 +148,7 @@ def main():
             if len(saved_timesteps) == 0:
                 quick_sanity_check(rdm_final, name=f"{area}_t{t}_{args.metric}_{args.rdm_type}")
 
-            # 🔥 speichern
+            # speichern
             all_save_dict[f"{area}_t{t}_rdm_{args.metric}_{args.rdm_type}"] = rdm_final.astype(np.float32)
 
             # optional: beide speichern
@@ -170,6 +170,10 @@ def main():
     # PLOTS
     # ---------------------------
     if args.plot_panels:
+
+        # ---------------------------
+        # Einzelpanels pro Area
+        # ---------------------------
         for area in AREAS:
             area_rdms = panel_data[area]["rdms"]
             area_titles = panel_data[area]["titles"]
@@ -185,16 +189,82 @@ def main():
 
             for i in range(n_panels):
                 plt.subplot(1, n_panels, i + 1)
-                plt.imshow(area_rdms[i], rasterized=True)
+
+                im = plt.imshow(area_rdms[i], rasterized=True)
+                if args.rdm_type == "raw":
+                    plt.colorbar(im, fraction=0.046, pad=0.04)
+
                 plt.gca().axis("off")
-                plt.title(area_titles[i])
+                plt.title(f"{area_titles[i]} ({args.metric})")
 
             panel_path = save_base + f"_{area}_panel.svg"
             plt.savefig(panel_path, dpi=800, bbox_inches="tight")
             plt.close()
 
+            print(f"[PANEL SAVED] {area}: {panel_path}")
+
         print("Saved panel plots.")
 
+        # ---------------------------------
+        # Combined plot: all areas x timesteps
+        # ---------------------------------
+        all_timesteps = sorted({
+            int(title.split(" t")[1])
+            for area in AREAS
+            for title in panel_data[area]["titles"]
+        })
+
+        if len(all_timesteps) > 0:
+            n_rows = len(AREAS)
+            n_cols = len(all_timesteps)
+
+            fig, axes = plt.subplots(
+                n_rows,
+                n_cols,
+                figsize=(2.6 * n_cols, 2.4 * n_rows)
+            )
+
+            if n_rows == 1:
+                axes = np.expand_dims(axes, axis=0)
+            if n_cols == 1:
+                axes = np.expand_dims(axes, axis=1)
+
+            # Lookup
+            panel_lookup = {}
+            for area in AREAS:
+                panel_lookup[area] = {}
+                for rdm, title in zip(panel_data[area]["rdms"], panel_data[area]["titles"]):
+                    t = int(title.split(" t")[1])
+                    panel_lookup[area][t] = rdm
+
+            for row, area in enumerate(AREAS):
+                for col, t in enumerate(all_timesteps):
+                    ax = axes[row, col]
+
+                    if t in panel_lookup[area]:
+                        im = ax.imshow(panel_lookup[area][t], interpolation="nearest")
+                        if args.rdm_type == "raw":
+                            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+
+                    ax.axis("off")
+
+                    if row == 0:
+                        ax.set_title(f"t{t}", fontsize=10)
+
+            plt.suptitle(f"{model_name} ({args.metric}, {args.rdm_type})", fontsize=14)
+            plt.tight_layout(rect=[0.08, 0, 1, 0.97])
+
+            # Area labels links
+            for row, area in enumerate(AREAS):
+                pos = axes[row, 0].get_position()
+                y_center = (pos.y0 + pos.y1) / 2
+                fig.text(0.04, y_center, area, va="center", ha="right", fontsize=12)
+
+            combined_path = save_base + "_combined_panel.png"
+            plt.savefig(combined_path, dpi=200, bbox_inches="tight")
+            plt.close()
+
+            print(f"[COMBINED PANEL SAVED] {combined_path}")
 
 if __name__ == "__main__":
     main()

@@ -12,10 +12,12 @@
 MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
 USE_BEST=1
 BATCH_SIZE=32
+METRIC="euclidean"
+RDM_TYPE="raw"
 
 MONKEY_PROCESSED_PATH="analysis_outputs/monkey_rdms/rdm_trajectory_panels_mua/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_mua_processed.npz"
 FEATURES_PATH="analysis_outputs/ann_features/${MODEL_NAME}_features.npz"
-SAVE_DIR="analysis_outputs/ann_rdms"
+SAVE_DIR="analysis_outputs/ann_rdms/${MODEL_NAME}_${METRIC}_${RDM_TYPE}"
 PLOT_PANELS=1
 
 spack load miniconda3
@@ -58,11 +60,13 @@ fi
 
 echo ""
 echo "Step 2/2: Generate ANN RDMs"
-python analysis/rdm_generation/save_ann_rdms.py \
+python analysis/rdm_generation/save_ann_rdms_extended.py \
     --features_path "$FEATURES_PATH" \
     --monkey_processed_path "$MONKEY_PROCESSED_PATH" \
     --save_dir "$SAVE_DIR" \
-    --plot_panels "$PLOT_PANELS"
+    --plot_panels "$PLOT_PANELS" \
+    --metric "$METRIC" \
+    --rdm_type "$RDM_TYPE"
 
 echo "====================================="
 echo "Pipeline finished: $(date)"

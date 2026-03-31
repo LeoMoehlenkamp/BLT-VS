@@ -225,7 +225,9 @@ def main():
                     im = plt.imshow(area_rdms[i], rasterized=True)
 
                 plt.gca().axis("off")
-                plt.title(f"{area_titles[i]} ({args.metric})")
+                display_area = "Ret" if area == "Retina" else area
+                t = area_titles[i].split(" t")[1]
+                plt.title(f"{display_area} t{t} ({args.metric})")
 
             panel_path = save_base + f"_{area}_panel.svg"
             plt.savefig(panel_path, dpi=800, bbox_inches="tight")

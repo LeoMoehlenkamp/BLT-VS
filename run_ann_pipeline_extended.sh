@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH -c 4
 #SBATCH --mem=16G
-#SBATCH --gres=gpu:0
+#SBATCH --gres=gpu:1
 #SBATCH --time=02:00:00
 #SBATCH --job-name=annpipe
 #SBATCH --output=logs/%x_%j.out

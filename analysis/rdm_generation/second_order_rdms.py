@@ -13,15 +13,15 @@ AREAS = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
 # =========================
 # LOCAL SETTINGS
 # =========================
-rdm_npz_path = r"C:\Users\moehl\Logs\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_euclidean_ranked\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_ann_rdms.npz"
-save_dir = r"C:\Users\moehl\Logs\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_euclidean_ranked"
+rdm_npz_path = r"C:\Users\moehl\Logs\RDM_tests\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_cosine_raw\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_ann_rdms.npz"
+save_dir = r"C:\Users\moehl\Logs\RDM_tests\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846"
 
 # Welche first-order RDMs sollen aus dem npz genommen werden?
 # z.B. "cosine" oder "euclidean"
-distance_metric = "euclidean"
+distance_metric = "cosine"
 
 # z.B. "raw" oder "ranked"
-rdm_type = "ranked"
+rdm_type = "raw"
 
 # Plotgröße
 single_figsize = (5, 4.5)

@@ -45,6 +45,6 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --learning_rate 7.5e-4 \
     --num_workers 4
 
-echo "-------------------------------------"
+echo "------------------------------------"
 echo "Finished: $(date)"
-echo "-------------------------------------"
+echo "------------------------------------"

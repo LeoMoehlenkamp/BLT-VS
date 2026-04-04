@@ -4,7 +4,7 @@
 #SBATCH -c 12
 #SBATCH --mem=16G
 #SBATCH --gres=gpu:1
-#SBATCH --time=12:00:00
+#SBATCH --time=14:00:00
 #SBATCH --job-name=BLT
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err

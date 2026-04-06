@@ -8,11 +8,11 @@ import matplotlib.image as mpimg
 
 BASE_DIR = r"C:\Users\moehl\Logs\Exp\final"
 
-RUN_1 = "blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
-RUN_2 = r"BNV2V3\blt_vs_bottleneck__miniecoset__ts12__bn-V2V3-12__20260328_204839"
+RUN_1 = r"C:\Users\moehl\Logs\Exp\final\BNV1V2\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846"
+RUN_2 = r"C:\Users\moehl\Logs\Exp\final\BNall\blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-16_LGNV1-16_V1V2-16_V2V3-16_V3V4-16_V4LOC-16__20260402_123451"
 
 LABEL_1 = "No BN"
-LABEL_2 = "V2V3-12"
+LABEL_2 = "BN all(16)"
 
 FIGURE_TITLE = "Comparison of Two Runs"
 SAVE_PATH = os.path.join(BASE_DIR, "comparison_two_runs.png")

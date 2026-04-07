@@ -71,9 +71,9 @@ parser.add_argument("--bio_unroll", type=int, default=1)
 parser.add_argument("--readout_type", type=str, default="multi")
 parser.add_argument("--image_size", type=int, default=224)
 parser.add_argument(
-    "--save_txt",
+    "--no_save",
     action="store_true",
-    help="Save the report as analyze_parameters_report.txt",
+    help="Do NOT save the report to a text file (by default it is saved).",
 )
 
 args = parser.parse_args()
@@ -436,7 +436,7 @@ if __name__ == "__main__":
     report = buf.getvalue()
     print(report)
 
-    if args.save_txt:
+    if not args.no_save:
         out_path = "analyze_parameters_report.txt"
         with open(out_path, "w") as f:
             f.write(report)

@@ -33,7 +33,7 @@ echo "Starting resume training..."
 python blt_vs_model/training_code/resume_training.py \
     --run_name "blt_vs_bottleneck__miniecoset__ts12__bnall16__20260402_123451" \
     --checkpoint best \
-    --n_epochs 20 \
+    --n_epochs 2 \
     --learning_rate 7.5e-5
 
 echo "-------------------------------------"

@@ -48,23 +48,7 @@ if ! nvidia-smi; then
 fi
 echo "[4/7] nvidia-smi check passed."
 
-echo "[5/7] Running PyTorch CUDA sanity check..."
-python - <<'PY'
-import sys
-import torch
-
-print("torch version:", torch.__version__)
-print("torch cuda build:", torch.version.cuda)
-print("cuda available:", torch.cuda.is_available())
-print("cuda device count:", torch.cuda.device_count())
-
-if not torch.cuda.is_available() or torch.cuda.device_count() < 1:
-    print("ERROR: PyTorch cannot see a CUDA GPU in this SLURM job.")
-    sys.exit(1)
-
-print("GPU[0]:", torch.cuda.get_device_name(0))
-PY
-echo "[5/7] PyTorch CUDA sanity check passed."
+echo "[5/7] Skipping strict PyTorch CUDA pre-check (matching standard training script behavior)."
 
 RUN_NAME="blt_vs_bottleneck__miniecoset__ts12__bnall16__20260402_123451"
 

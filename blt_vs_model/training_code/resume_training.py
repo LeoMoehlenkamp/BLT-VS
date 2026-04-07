@@ -64,6 +64,8 @@ parser.add_argument('--batch_size_val_test', type=int, default=None,
 parser.add_argument('--num_workers', type=int, default=None,
                     help='Number of dataloader workers (default: use original)')
 parser.add_argument('--grad_clipping', type=int, default=1)
+parser.add_argument('--from_epoch', type=int, default=None,
+                    help='Truncate history to this epoch before resuming (e.g. 40 to discard later epochs)')
 
 args = parser.parse_args()
 
@@ -152,8 +154,43 @@ if "val_accuracies_all" in log_data.files:
 else:
     val_accuracies_all = []
 
+total_saved_epochs = len(train_losses)
+print(f"Loaded {total_saved_epochs} epochs of training history.")
+
+# -------------------------------------------------------
+# Auto-determine from_epoch based on checkpoint type
+# (unless the user explicitly passed --from_epoch)
+# -------------------------------------------------------
+if args.from_epoch is not None:
+    # User override — use exactly what they specified
+    from_epoch = args.from_epoch
+    print(f"Using user-specified --from_epoch={from_epoch}")
+elif args.checkpoint == 'best' and len(val_accuracies) > 0:
+    # BEST checkpoint → truncate to the epoch where best val acc was achieved
+    from_epoch = int(np.argmax(val_accuracies)) + 1
+    print(f"Auto-detected: BEST checkpoint was epoch {from_epoch} "
+          f"(val acc {val_accuracies[from_epoch - 1]:.2f}%)")
+else:
+    # LAST checkpoint → keep all history
+    from_epoch = total_saved_epochs
+    print(f"Using LAST checkpoint — keeping all {from_epoch} epochs of history.")
+
+# Truncate history to from_epoch
+if from_epoch < total_saved_epochs:
+    print(f"Truncating history to first {from_epoch} epochs "
+          f"(discarding epochs {from_epoch + 1}-{total_saved_epochs}).")
+    train_losses = train_losses[:from_epoch]
+    train_accuracies = train_accuracies[:from_epoch]
+    val_losses = val_losses[:from_epoch]
+    val_accuracies = val_accuracies[:from_epoch]
+    if len(val_accuracies_all) > from_epoch:
+        val_accuracies_all = val_accuracies_all[:from_epoch]
+elif from_epoch > total_saved_epochs:
+    print(f"WARNING: from_epoch={from_epoch} but only {total_saved_epochs} epochs in history. "
+          f"Using all {total_saved_epochs}.")
+
 previous_epochs = len(train_losses)
-print(f"Found {previous_epochs} previous epochs of training history.")
+print(f"Resuming from epoch {previous_epochs + 1}.")
 
 # Best val acc from history
 if len(val_accuracies) > 0:

@@ -437,7 +437,11 @@ if __name__ == "__main__":
     print(report)
 
     if not args.no_save:
-        out_path = "analyze_parameters_report.txt"
+        from datetime import datetime
+        save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parameter_analysis")
+        os.makedirs(save_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = os.path.join(save_dir, f"param_analysis_{timestamp}.txt")
         with open(out_path, "w") as f:
             f.write(report)
         print(f"Report saved to {out_path}")

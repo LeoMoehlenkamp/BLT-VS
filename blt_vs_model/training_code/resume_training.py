@@ -465,7 +465,6 @@ resume_epoch = previous_epochs + 0.5  # between old and new
 plt.figure(figsize=(8, 5))
 plt.plot(epochs_arr, train_acc, label="Train Accuracy")
 plt.plot(epochs_arr, val_acc, label="Validation Accuracy")
-plt.axvline(resume_epoch, color='orange', linestyle=':', linewidth=2, label=f"Resumed (after epoch {previous_epochs})")
 plt.scatter(best_val_epoch_plot, best_val_acc_plot, color='red', zorder=5)
 
 gap = train_acc_at_best - best_val_acc_plot
@@ -477,7 +476,7 @@ plt.annotate(
 
 plt.xlabel("Epoch")
 plt.ylabel("Accuracy (%)")
-plt.title("Accuracy Curve (Full History + Resumed)")
+plt.title("Accuracy Curve (Annotated)")
 plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
 plt.grid(alpha=0.3)
 plt.legend()
@@ -492,7 +491,6 @@ plt.close()
 plt.figure(figsize=(8, 5))
 plt.plot(epochs_arr, train_loss, label="Train Loss")
 plt.plot(epochs_arr, val_loss_arr, label="Validation Loss")
-plt.axvline(resume_epoch, color='orange', linestyle=':', linewidth=2, label=f"Resumed (after epoch {previous_epochs})")
 plt.scatter(best_loss_epoch_plot, best_val_loss_plot, color='green', zorder=5)
 
 plt.annotate(
@@ -503,7 +501,7 @@ plt.annotate(
 
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
-plt.title("Loss Curve (Full History + Resumed)")
+plt.title("Loss Curve (Annotated)")
 plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=8, integer=True))
 plt.grid(alpha=0.3)
 plt.legend()
@@ -517,16 +515,12 @@ plt.close()
 
 summary = pd.DataFrame({
     "Metric": [
-        "Total Epochs",
-        "Resumed after Epoch",
         "Best Val Accuracy (%)",
         "Train Accuracy @ Best Val Epoch (%)",
         "Validation Loss @ Best Epoch",
         "Train Loss @ Best Val Epoch"
     ],
     "Value": [
-        total_epochs,
-        previous_epochs,
         round(best_val_acc_plot, 3),
         round(train_acc_at_best, 3),
         round(best_val_loss_plot, 4),

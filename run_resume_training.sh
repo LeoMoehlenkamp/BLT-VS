@@ -27,6 +27,11 @@ export NCCL_SOCKET_IFNAME=lo
 mkdir -p logs
 
 echo "[3/7] Activating conda environment..."
+if [ -f "$HOME/startup_conda.sh" ]; then
+    set +e
+    source "$HOME/startup_conda.sh"
+    set -e
+fi
 conda activate blt_vs
 echo "[3/7] Conda environment activated."
 

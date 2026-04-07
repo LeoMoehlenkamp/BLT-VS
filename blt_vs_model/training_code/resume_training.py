@@ -64,8 +64,6 @@ parser.add_argument('--batch_size_val_test', type=int, default=None,
 parser.add_argument('--num_workers', type=int, default=None,
                     help='Number of dataloader workers (default: use original)')
 parser.add_argument('--grad_clipping', type=int, default=1)
-parser.add_argument('--warmup_epochs', type=int, default=2,
-                    help='Warmup epochs for resumed training')
 
 args = parser.parse_args()
 
@@ -103,8 +101,6 @@ if isinstance(hyp['dataset'].get('augment_val_test'), list):
     hyp['dataset']['augment_val_test'] = set(hyp['dataset']['augment_val_test'])
 
 # Override with user-specified values
-if args.learning_rate is not None:
-    hyp['optimizer']['lr']['base_lr'] = args.learning_rate
 if args.batch_size is not None:
     hyp['optimizer']['batch_size'] = args.batch_size
 if args.batch_size_val_test is not None:
@@ -112,10 +108,18 @@ if args.batch_size_val_test is not None:
 if args.num_workers is not None:
     hyp['optimizer']['dataloader']['num_workers_train'] = args.num_workers
 
-# Warmup settings for resume (shorter warmup, smaller scale factor)
-hyp['optimizer']['lr']['warmup_epochs'] = args.warmup_epochs
-hyp['optimizer']['lr']['lr_scale_factor'] = 1.5
 hyp['optimizer']['n_epochs'] = args.n_epochs
+
+# Determine resume LR:
+#   If user passed --learning_rate, use that exact value.
+#   Otherwise default to base_lr / 10 (the original training likely decayed
+#   the LR significantly, so starting at full base_lr would be too high).
+original_base_lr = hyp['optimizer']['lr']['base_lr']
+if args.learning_rate is not None:
+    resume_lr = args.learning_rate
+else:
+    resume_lr = original_base_lr / 10.0
+print(f"Resume LR: {resume_lr}  (original base_lr was {original_base_lr})")
 
 # Ensure dataset_mode exists
 if 'dataset_mode' not in hyp:
@@ -224,20 +228,14 @@ if criterion.weight is not None:
 optimizer = get_optimizer(hyp, net)
 scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp'])
 
-base_lr = hyp['optimizer']['lr']['base_lr']
-warmup_epochs = hyp['optimizer']['lr']['warmup_epochs']
-lr_scale_factor = hyp['optimizer']['lr']['lr_scale_factor']
+# Set LR directly — no warmup, continue at a low LR
+for param_group in optimizer.param_groups:
+    param_group['lr'] = resume_lr
 
+# Only the adaptive scheduler (halves LR when val loss plateaus)
 lr_scheduler = LinearFitScheduler(
     optimizer, num_epochs=5, factor=1./2,
     min_percent_change=1.0, mode='min', verbose=True, patience=2
-)
-
-warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(
-    optimizer,
-    lambda epoch_h: (
-        (base_lr - base_lr / lr_scale_factor) / max(warmup_epochs - 1, 1)
-    ) * epoch_h + base_lr / lr_scale_factor
 )
 
 # ============================
@@ -247,7 +245,7 @@ warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(
 print(f"\n{'='*50}")
 print(f"Resuming training for {args.n_epochs} additional epochs")
 print(f"Epochs will be numbered {previous_epochs + 1} to {previous_epochs + args.n_epochs}")
-print(f"Learning rate: {base_lr}")
+print(f"Learning rate: {resume_lr}")
 print(f"{'='*50}\n")
 
 for epoch_rel in range(1, args.n_epochs + 1):
@@ -347,11 +345,8 @@ for epoch_rel in range(1, args.n_epochs + 1):
     print(f'Train loss: {train_losses[-1]:.2f}; acc: {train_accuracies[-1]:.2f}%')
     print(f'Val loss: {val_losses[-1]:.2f}; acc: {val_accuracies[-1]:.2f}%')
 
-    # LR scheduling
-    if epoch_rel < warmup_epochs:
-        warmup_scheduler.step()
-    else:
-        lr_scheduler.step(val_losses[-1])
+    # LR scheduling (adaptive only, no warmup)
+    lr_scheduler.step(val_losses[-1])
 
     # Save metrics every epoch (overwrites with full history)
     np.savez(

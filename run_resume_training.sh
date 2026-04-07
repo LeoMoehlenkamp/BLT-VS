@@ -23,6 +23,7 @@ source ~/startup_conda.sh
 conda activate blt_vs
 
 echo "Conda env: $CONDA_DEFAULT_ENV"
+echo "Node: $(hostname)"
 which python
 python --version
 nvidia-smi

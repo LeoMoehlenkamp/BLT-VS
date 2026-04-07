@@ -1,0 +1,42 @@
+#!/bin/bash
+#SBATCH --partition=klab-l40s
+#SBATCH --nodes=1
+#SBATCH -c 12
+#SBATCH --mem=16G
+#SBATCH --gres=gpu:1
+#SBATCH --time=24:00:00
+#SBATCH --job-name=BLT_resume
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
+
+spack load miniconda3
+spack load git
+spack load cuda@11.8.0
+spack load cudnn@8.6.0.163-11.8
+eval "$(conda shell.bash hook)"
+
+export NCCL_SOCKET_IFNAME=lo
+mkdir -p logs
+
+# Activate Conda
+source ~/startup_conda.sh
+conda activate blt_vs
+
+echo "Conda env: $CONDA_DEFAULT_ENV"
+which python
+python --version
+nvidia-smi
+
+RUN_NAME="blt_vs_bottleneck__miniecoset__ts12__bnall16__20260402_123451"
+
+echo "Resuming training for run: $RUN_NAME"
+echo "Starting: $(date)"
+
+python blt_vs_model/training_code/resume_training.py \
+    --run_name "$RUN_NAME" \
+    --checkpoint best \
+    --n_epochs 20
+
+echo "-------------------------------------"
+echo "Finished: $(date)"
+echo "-------------------------------------"

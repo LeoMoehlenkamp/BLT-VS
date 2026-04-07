@@ -11,8 +11,8 @@ from scipy.stats import spearmanr
 AREAS = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
 
 # NEU: Parent Ordner mit 4 Runs
-parent_dir = r"C:\Users\moehl\Logs\RDM_tests\V1V2-12_V2V3-12__20260330_140748"
-save_root = r"C:\Users\moehl\Logs\RDM_tests\V1V2-12_V2V3-12__20260330_140748"
+parent_dir = r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451"
+save_root = r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451"
 
 single_figsize = (5, 4.5)
 overview_scale = 4.0

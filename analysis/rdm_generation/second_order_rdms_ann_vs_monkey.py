@@ -288,62 +288,6 @@ def main():
         print(f"  Saved npz/{area}_cross_correlation.npz")
 
     # ---------------------------------------------------------
-    # C) Big second-order RDM (all monkey + all ANN, pairwise)
-    # ---------------------------------------------------------
-    print("\n=== Computing BIG second-order RDM ===")
-    all_ann_vectors = np.array([ann_rdm_dict[k] for k in all_ann_keys])
-    combined_vectors = np.vstack([monkey_timecourse, all_ann_vectors])
-    combined_labels = monkey_labels + all_ann_keys
-
-    big_corr = 1 - cdist(combined_vectors, combined_vectors, metric="correlation")
-    big_rdm = 1 - big_corr
-
-    print(f"  Combined matrix size: {big_rdm.shape}")
-    print(f"  Monkey slots: 0..{n_monkey-1}, ANN slots: {n_monkey}..{n_monkey+n_ann-1}")
-
-    np.savez_compressed(
-        path.join(npz_dir, "big_second_order_rdm.npz"),
-        second_order_rdm=big_rdm.astype(np.float32),
-        second_order_corr=big_corr.astype(np.float32),
-        labels=np.array(combined_labels),
-        n_monkey=np.int32(n_monkey),
-        n_ann=np.int32(n_ann),
-        metric=np.array(args.metric),
-        rdm_type=np.array(args.rdm_type),
-    )
-    print(f"  Saved npz/big_second_order_rdm.npz")
-
-    # ---------------------------------------------------------
-    # D) Per-area second-order RDMs
-    # ---------------------------------------------------------
-    for area in AREAS:
-        if area not in ann_keys_by_area:
-            continue
-        area_keys = ann_keys_by_area[area]
-        area_vecs = np.array([ann_rdm_dict[k] for k in area_keys])
-        area_combined = np.vstack([monkey_timecourse, area_vecs])
-        area_combined_labels = monkey_labels + area_keys
-
-        area_big_corr = 1 - cdist(area_combined, area_combined, metric="correlation")
-        area_big_rdm = 1 - area_big_corr
-
-        area_timesteps = area_corr_data[area]["ann_timesteps"]
-
-        np.savez_compressed(
-            path.join(npz_dir, f"{area}_second_order_rdm.npz"),
-            second_order_rdm=area_big_rdm.astype(np.float32),
-            second_order_corr=area_big_corr.astype(np.float32),
-            labels=np.array(area_combined_labels),
-            n_monkey=np.int32(n_monkey),
-            n_area=np.int32(len(area_keys)),
-            area=np.array(area),
-            ann_timesteps=np.array(area_timesteps, dtype=np.int32),
-            monkey_times=monkey_times_used,
-            cross_correlation=area_corr_data[area]["corr"].astype(np.float32),
-        )
-        print(f"  Saved npz/{area}_second_order_rdm.npz")
-
-    # ---------------------------------------------------------
     # Plots
     # ---------------------------------------------------------
     if not args.plot_panels:

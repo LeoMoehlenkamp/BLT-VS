@@ -231,7 +231,9 @@ def main():
     # ---------------------------------------------------------
     run_tag = f"{model_name}__{args.metric}_{args.rdm_type}"
     out_dir = path.join(args.save_dir, run_tag)
+    npz_dir = path.join(out_dir, "npz")
     os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(npz_dir, exist_ok=True)
 
     n_monkey = len(monkey_labels)
     n_ann = len(all_ann_keys)
@@ -247,14 +249,14 @@ def main():
     # full_corr shape: (n_monkey_times, n_ann_total)
 
     np.savez_compressed(
-        path.join(out_dir, "full_cross_correlation.npz"),
+        path.join(npz_dir, "full_cross_correlation.npz"),
         cross_correlation=full_corr.astype(np.float32),
         monkey_times=monkey_times_used,
         ann_keys=np.array(all_ann_keys),
         metric=np.array(args.metric),
         rdm_type=np.array(args.rdm_type),
     )
-    print(f"  Saved full_cross_correlation.npz")
+    print(f"  Saved npz/full_cross_correlation.npz")
 
     # ---------------------------------------------------------
     # B) Per-area cross-correlation
@@ -278,12 +280,12 @@ def main():
         }
 
         np.savez_compressed(
-            path.join(out_dir, f"{area}_cross_correlation.npz"),
+            path.join(npz_dir, f"{area}_cross_correlation.npz"),
             cross_correlation=area_corr.astype(np.float32),
             monkey_times=monkey_times_used,
             ann_timesteps=np.array(area_timesteps, dtype=np.int32),
         )
-        print(f"  Saved {area}_cross_correlation.npz")
+        print(f"  Saved npz/{area}_cross_correlation.npz")
 
     # ---------------------------------------------------------
     # C) Big second-order RDM (all monkey + all ANN, pairwise)
@@ -300,7 +302,7 @@ def main():
     print(f"  Monkey slots: 0..{n_monkey-1}, ANN slots: {n_monkey}..{n_monkey+n_ann-1}")
 
     np.savez_compressed(
-        path.join(out_dir, "big_second_order_rdm.npz"),
+        path.join(npz_dir, "big_second_order_rdm.npz"),
         second_order_rdm=big_rdm.astype(np.float32),
         second_order_corr=big_corr.astype(np.float32),
         labels=np.array(combined_labels),
@@ -309,7 +311,7 @@ def main():
         metric=np.array(args.metric),
         rdm_type=np.array(args.rdm_type),
     )
-    print(f"  Saved big_second_order_rdm.npz")
+    print(f"  Saved npz/big_second_order_rdm.npz")
 
     # ---------------------------------------------------------
     # D) Per-area second-order RDMs
@@ -328,7 +330,7 @@ def main():
         area_timesteps = area_corr_data[area]["ann_timesteps"]
 
         np.savez_compressed(
-            path.join(out_dir, f"{area}_second_order_rdm.npz"),
+            path.join(npz_dir, f"{area}_second_order_rdm.npz"),
             second_order_rdm=area_big_rdm.astype(np.float32),
             second_order_corr=area_big_corr.astype(np.float32),
             labels=np.array(area_combined_labels),
@@ -339,7 +341,7 @@ def main():
             monkey_times=monkey_times_used,
             cross_correlation=area_corr_data[area]["corr"].astype(np.float32),
         )
-        print(f"  Saved {area}_second_order_rdm.npz")
+        print(f"  Saved npz/{area}_second_order_rdm.npz")
 
     # ---------------------------------------------------------
     # Plots
@@ -350,116 +352,86 @@ def main():
 
     print("\n=== Generating plots ===")
 
-    # ---- Plot 1: Big second-order RDM ----
-    fig, ax = plt.subplots(figsize=(14, 12))
-    im = ax.imshow(big_rdm, interpolation="nearest", cmap="viridis")
+    # ---- Plot 1: Big cross-correlation matrix (monkey ms × all ANN layers/timesteps) ----
+    # full_corr shape: (n_monkey_times, n_ann_total)
+    n_ann_total = full_corr.shape[1]
+    fig_w = max(14, n_ann_total * 0.35)
+    fig_h = max(4, n_monkey * 0.4)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
 
-    tick_pos = np.arange(len(combined_labels))
-    ax.set_xticks(tick_pos)
-    ax.set_xticklabels(combined_labels, rotation=90, fontsize=5)
-    ax.set_yticks(tick_pos)
-    ax.set_yticklabels(combined_labels, fontsize=5)
+    im = ax.imshow(full_corr, aspect="auto", interpolation="nearest",
+                   cmap="RdBu_r", vmin=-1, vmax=1)
 
-    ax.axhline(y=n_monkey - 0.5, color="white", linewidth=1.5)
-    ax.axvline(x=n_monkey - 0.5, color="white", linewidth=1.5)
+    # X axis: ANN keys (area t0, area t1, ...)
+    ax.set_xticks(np.arange(n_ann_total))
+    ax.set_xticklabels(all_ann_keys, rotation=90, fontsize=5)
+    ax.set_xlabel("ANN layer / timestep")
 
-    offset = n_monkey
+    # Y axis: monkey timepoints (ms)
+    ax.set_yticks(np.arange(n_monkey))
+    ax.set_yticklabels([f"{int(t)}ms" for t in monkey_times_used], fontsize=7)
+    ax.set_ylabel("Monkey time (ms)")
+
+    # Separator lines between ANN areas
+    offset = 0
     for area in AREAS:
         if area in ann_keys_by_area:
-            n_a = len(ann_keys_by_area[area])
-            offset += n_a
-            if offset < len(combined_labels):
-                ax.axhline(y=offset - 0.5, color="white", linewidth=0.5, linestyle="--")
-                ax.axvline(x=offset - 0.5, color="white", linewidth=0.5, linestyle="--")
+            offset += len(ann_keys_by_area[area])
+            if offset < n_ann_total:
+                ax.axvline(x=offset - 0.5, color="white", linewidth=1, linestyle="--")
 
-    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="1 - correlation")
-    ax.set_title(f"Second-order RDM: Monkey + {model_name}\n({args.metric}, {args.rdm_type})", fontsize=12)
+    fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02, label="Correlation")
+    ax.set_title(f"Cross-correlation: Monkey × ANN\n{model_name}  ({args.metric}, {args.rdm_type})", fontsize=11)
     plt.tight_layout()
 
-    big_plot_path = path.join(out_dir, "big_second_order_rdm.png")
+    big_plot_path = path.join(out_dir, "big_cross_correlation.png")
     plt.savefig(big_plot_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"  [SAVED] {big_plot_path}")
 
-    # ---- Plot 2: Per-area second-order RDMs ----
-    available_areas = [a for a in AREAS if a in ann_keys_by_area]
+    # ---- Plot 2: Per-area cross-correlation (monkey ms × area timesteps) ----
+    available_areas = [a for a in AREAS if a in area_corr_data]
     n_areas = len(available_areas)
 
     if n_areas > 0:
-        fig, axes = plt.subplots(1, n_areas, figsize=(5 * n_areas, 4.5))
+        fig, axes = plt.subplots(1, n_areas, figsize=(4 * n_areas, 4.5))
         if n_areas == 1:
             axes = [axes]
 
         for ax, area in zip(axes, available_areas):
-            area_keys = ann_keys_by_area[area]
-            area_combined_labels = monkey_labels + area_keys
-            n_total = len(area_combined_labels)
+            info = area_corr_data[area]
+            cross = info["corr"]         # (n_monkey_times, n_area_timesteps)
+            a_ts = info["ann_timesteps"]
 
-            area_file = np.load(path.join(out_dir, f"{area}_second_order_rdm.npz"))
-            area_rdm_local = area_file["second_order_rdm"]
+            im = ax.imshow(cross, aspect="auto", interpolation="nearest",
+                           cmap="RdBu_r", vmin=-1, vmax=1)
 
-            im = ax.imshow(area_rdm_local, interpolation="nearest", cmap="viridis")
+            # X axis: ANN timesteps
+            ax.set_xticks(np.arange(len(a_ts)))
+            ax.set_xticklabels([f"t{t}" for t in a_ts], rotation=90, fontsize=7)
+            ax.set_xlabel("ANN timestep")
 
-            tick_pos = np.arange(n_total)
-            short_labels = [f"M{int(t)}ms" for t in monkey_times_used] + \
-                           [f"t{t}" for t in area_corr_data[area]["ann_timesteps"]]
+            # Y axis: monkey times
+            ax.set_yticks(np.arange(n_monkey))
+            ax.set_yticklabels([f"{int(t)}ms" for t in monkey_times_used], fontsize=7)
+            ax.set_ylabel("Monkey time (ms)")
 
-            ax.set_xticks(tick_pos)
-            ax.set_xticklabels(short_labels, rotation=90, fontsize=6)
-            ax.set_yticks(tick_pos)
-            ax.set_yticklabels(short_labels, fontsize=6)
-            ax.axhline(y=n_monkey - 0.5, color="white", linewidth=1)
-            ax.axvline(x=n_monkey - 0.5, color="white", linewidth=1)
             ax.set_title(area, fontsize=11)
-            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Correlation")
 
         plt.suptitle(
-            f"Per-area second-order RDMs: {model_name}\n({args.metric}, {args.rdm_type})",
+            f"Cross-correlation per area: {model_name}\n({args.metric}, {args.rdm_type})",
             fontsize=13
         )
         plt.tight_layout(rect=[0, 0, 1, 0.93])
 
-        per_area_path = path.join(out_dir, "per_area_second_order_rdms.png")
+        per_area_path = path.join(out_dir, "per_area_cross_correlation.png")
         plt.savefig(per_area_path, dpi=300, bbox_inches="tight")
         plt.close()
         print(f"  [SAVED] {per_area_path}")
 
-    # ---- Plot 3: Cross-correlation heatmaps (monkey time x ANN timestep) ----
+    # ---- Plot 3: Line plots per area (one line per ANN timestep) ----
     if len(area_corr_data) > 0:
-        n_plot_areas = len(area_corr_data)
-
-        fig, axes = plt.subplots(1, n_plot_areas, figsize=(5 * n_plot_areas, 4))
-        if n_plot_areas == 1:
-            axes = [axes]
-
-        for ax, area in zip(axes, [a for a in AREAS if a in area_corr_data]):
-            info = area_corr_data[area]
-            cross = info["corr"]  # (n_monkey_times, n_ann_timesteps)
-            a_ts = info["ann_timesteps"]
-
-            im = ax.imshow(cross, aspect="auto", interpolation="nearest", cmap="RdBu_r",
-                           vmin=-1, vmax=1)
-            ax.set_xticks(np.arange(len(a_ts)))
-            ax.set_xticklabels([f"t{t}" for t in a_ts], rotation=90, fontsize=7)
-            ax.set_yticks(np.arange(len(monkey_times_used)))
-            ax.set_yticklabels([f"{int(t)}ms" for t in monkey_times_used], fontsize=7)
-            ax.set_xlabel("ANN timestep")
-            ax.set_ylabel("Monkey time (ms)")
-            ax.set_title(area)
-            fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-
-        plt.suptitle(
-            f"Cross-correlation: Monkey x ANN\n{model_name}",
-            fontsize=12
-        )
-        plt.tight_layout(rect=[0, 0, 1, 0.90])
-
-        heatmap_path = path.join(out_dir, "cross_correlation_heatmaps.png")
-        plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
-        plt.close()
-        print(f"  [SAVED] {heatmap_path}")
-
-        # ---- Plot 4: Line plots per area (one line per ANN timestep) ----
         for area in [a for a in AREAS if a in area_corr_data]:
             info = area_corr_data[area]
             cross = info["corr"]
@@ -482,7 +454,7 @@ def main():
             plt.close()
             print(f"  [SAVED] {line_path}")
 
-        # ---- Plot 5: Summary – best ANN match per area ----
+        # ---- Plot 4: Summary – best ANN match per area ----
         fig, ax = plt.subplots(figsize=(10, 5))
         for area in [a for a in AREAS if a in area_corr_data]:
             info = area_corr_data[area]

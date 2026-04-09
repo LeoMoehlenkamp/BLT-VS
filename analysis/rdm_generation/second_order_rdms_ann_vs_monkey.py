@@ -420,26 +420,7 @@ def main():
 
     print("\n=== Generating rectangular plots ===")
 
-    # ---------------------------------------------------------
-    # Plot 1: Full rectangular Monkey x ANN matrix
-    # ---------------------------------------------------------
     x_boundaries = build_x_boundaries(ann_keys_by_area, AREAS)
-
-    full_plot_path = path.join(out_dir, "big_rectangular_monkey_vs_ann.png")
-    plot_rectangular_matrix(
-        matrix=full_corr,
-        row_labels=monkey_labels,
-        col_labels=all_ann_keys,
-        save_path=full_plot_path,
-        title=f"Monkey vs ANN cross-correlation\n{model_name} ({args.metric}, {args.rdm_type})",
-        xlabel="ANN layer / timestep",
-        ylabel="Monkey time (ms)",
-        vmin=-1,
-        vmax=1,
-        cmap="RdBu_r",
-        x_group_boundaries=x_boundaries,
-    )
-    print(f"  [SAVED] {full_plot_path}")
 
     # ---------------------------------------------------------
     # Plot 2: Per-area rectangular heatmaps
@@ -457,7 +438,7 @@ def main():
             row_labels=monkey_labels,
             col_labels=[f"t{t}" for t in a_ts],
             save_path=save_path,
-            title=f"{area}: Monkey vs ANN timestep correlation",
+            title=f"{area}: Monkey vs ANN timestep correlation – {model_name}",
             xlabel="ANN timestep",
             ylabel="Monkey time (ms)",
             vmin=-1,
@@ -489,7 +470,7 @@ def main():
 
         ax.set_xlabel("Monkey time (ms)")
         ax.set_ylabel("Correlation")
-        ax.set_title(f"{area} – ANN timesteps vs monkey RDM timecourse")
+        ax.set_title(f"{area} – ANN timesteps vs monkey RDM timecourse – {model_name}")
         ax.legend(fontsize=7, ncol=max(1, len(a_ts) // 4), loc="best")
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -610,7 +591,7 @@ def main():
             row_labels=monkey_labels,
             col_labels=[f"t{t}" for t in a_ts],
             save_path=save_path,
-            title=f"{area}: Monkey vs ANN timestep correlation",
+            title=f"{area}: Monkey vs ANN timestep correlation – {model_name}",
             xlabel="ANN timestep",
             ylabel="Monkey time (ms)",
             vmin=-area_vmax,

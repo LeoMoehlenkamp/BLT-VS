@@ -536,46 +536,47 @@ def main():
     print(f"  [SAVED] {overall_path}")
 
     # ---------------------------------------------------------
-    # Adjusted Big Second-Order RDMs: Rectangular
+    # Adjusted Big Second-Order Similarity: Rectangular
     # ---------------------------------------------------------
-    print("\n=== Generating adjusted big second-order RDMs ===")
+    print("\n=== Generating adjusted big second-order similarity matrices ===")
 
-    # Ensure the big second-order RDM is rectangular
+    # Compute the big second-order similarity matrix (rectangular)
     big_second_order_corr = correlate_rdm_movie_with_models(
         monkey_timecourse, ann_rdm_dict, all_ann_keys
     )
     # Shape: (n_monkey_times, n_ann_total)
 
-    # Save the rectangular second-order RDM
+    # Save the rectangular second-order similarity matrix
     np.savez_compressed(
-        path.join(npz_dir, "big_second_order_rdms_rectangular.npz"),
-        second_order_rdm=big_second_order_corr.astype(np.float32),
+        path.join(npz_dir, "big_second_order_similarity_rectangular.npz"),
+        second_order_similarity=big_second_order_corr.astype(np.float32),
         row_labels=np.array(monkey_labels),
         col_labels=np.array(all_ann_keys),
         monkey_times=monkey_times_used,
         metric=np.array(args.metric),
         rdm_type=np.array(args.rdm_type),
     )
-    print("  Saved npz/big_second_order_rdms_rectangular.npz")
+    print("  Saved npz/big_second_order_similarity_rectangular.npz")
 
-    # Plot the rectangular second-order RDM
-    big_second_order_plot_path = path.join(out_dir, "big_second_order_rdms_rectangular.png")
+    # Plot the rectangular second-order similarity matrix
+    big_second_order_plot_path = path.join(out_dir, "big_second_order_similarity_rectangular.png")
     # ---------------------------------------------------------
     # Adjust color scale dynamically based on data
     # ---------------------------------------------------------
     print("\n=== Adjusting color scale dynamically for plots ===")
 
-    # Update the big second-order RDM plot
+    # Update the big second-order similarity plot
+    big_second_order_vmin = np.min(big_second_order_corr)
     big_second_order_vmax = np.max(big_second_order_corr)
     plot_rectangular_matrix(
         matrix=big_second_order_corr,
         row_labels=monkey_labels,
         col_labels=all_ann_keys,
         save_path=big_second_order_plot_path,
-        title=f"Big Second-Order RDMs: Monkey vs ANN\n{model_name} ({args.metric}, {args.rdm_type})",
+        title=f"Second-Order Similarity: Monkey vs ANN\n{model_name} ({args.metric}, {args.rdm_type})",
         xlabel="ANN layer / timestep",
         ylabel="Monkey time (ms)",
-        vmin=-big_second_order_vmax,
+        vmin=big_second_order_vmin,
         vmax=big_second_order_vmax,
         cmap="RdBu_r",
         x_group_boundaries=x_boundaries,
@@ -588,6 +589,7 @@ def main():
         cross = info["corr"]
         a_ts = info["ann_timesteps"]
 
+        area_vmin = np.min(cross)
         area_vmax = np.max(cross)
         save_path = path.join(out_dir, f"{area}_rectangular_cross_correlation.png")
         plot_rectangular_matrix(
@@ -598,7 +600,7 @@ def main():
             title=f"{area}: Monkey vs ANN timestep correlation – {model_name}",
             xlabel="ANN timestep",
             ylabel="Monkey time (ms)",
-            vmin=-area_vmax,
+            vmin=area_vmin,
             vmax=area_vmax,
             cmap="RdBu_r",
             figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),

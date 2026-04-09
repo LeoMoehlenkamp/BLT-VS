@@ -123,7 +123,7 @@ def plot_rectangular_matrix(
     ylabel,
     vmin=-1,
     vmax=1,
-    cmap="RdBu_r",
+    cmap="Reds",
     figsize=None,
     x_group_boundaries=None,
 ):
@@ -447,7 +447,7 @@ def main():
             ylabel="Monkey time (ms)",
             vmin=-1,
             vmax=1,
-            cmap="RdBu_r",
+            cmap="Reds",
             figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),
         )
         print(f"  [SAVED] {save_path}")
@@ -578,7 +578,7 @@ def main():
         ylabel="Monkey time (ms)",
         vmin=big_second_order_vmin,
         vmax=big_second_order_vmax,
-        cmap="RdBu_r",
+        cmap="Reds",
         x_group_boundaries=x_boundaries,
     )
     print(f"  [UPDATED] {big_second_order_plot_path} with dynamic color scale")
@@ -602,7 +602,7 @@ def main():
             ylabel="Monkey time (ms)",
             vmin=area_vmin,
             vmax=area_vmax,
-            cmap="RdBu_r",
+            cmap="Reds",
             figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),
         )
         print(f"  [UPDATED] {save_path} with dynamic color scale")

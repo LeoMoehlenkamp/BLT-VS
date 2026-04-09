@@ -262,6 +262,7 @@ def main():
     print("monkey_time:", monkey_time[:100])
     print("n timepoints:", len(monkey_time))
     print("unique step sizes:", np.unique(np.diff(monkey_time)))
+    print("last 20 monkey times:", monkey_time[-20:])
     monkey_rdms_raw = monkey_rdm_data["rdms"]  # list/array of condensed vectors
 
     sort_idx = get_rdm_design_sort_indices(

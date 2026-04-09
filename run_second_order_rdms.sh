@@ -15,6 +15,7 @@ SAVE_DIR="analysis_outputs/second_order_ann_vs_monkey"
 METRIC="cosine"
 RDM_TYPE="ranked"
 PLOT_PANELS=1
+T_STEP=2
 
 spack load miniconda3
 spack load git
@@ -66,7 +67,8 @@ python analysis/rdm_generation/second_order_rdms_ann_vs_monkey.py \
     --save_dir "$SAVE_DIR" \
     --metric "$METRIC" \
     --rdm_type "$RDM_TYPE" \
-    --plot_panels "$PLOT_PANELS"
+    --plot_panels "$PLOT_PANELS" \
+    --t_step "$T_STEP"
 
 echo "====================================="
 echo "Finished: $(date)"

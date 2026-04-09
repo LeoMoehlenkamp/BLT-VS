@@ -45,6 +45,20 @@ echo "====================================="
 
 cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 
+echo ""
+echo "Keys in ANN RDM npz:"
+python -c "
+import numpy as np
+d = np.load('$ANN_RDM_PATH', allow_pickle=True)
+keys = sorted(d.files)
+print(f'Total keys: {len(keys)}')
+for k in keys[:40]:
+    print(' ', k)
+if len(keys) > 40:
+    print(f'  ... and {len(keys)-40} more')
+"
+echo ""
+
 python analysis/rdm_generation/second_order_rdms_ann_vs_monkey.py \
     --ann_rdm_path "$ANN_RDM_PATH" \
     --monkey_pkl_path "$MONKEY_PKL_PATH" \

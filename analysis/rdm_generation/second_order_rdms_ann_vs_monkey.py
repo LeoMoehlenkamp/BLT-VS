@@ -232,7 +232,7 @@ def main():
     parser.add_argument(
         "--t_end",
         type=int,
-        default=160,
+        default=400,
         help="Monkey time end (ms, exclusive)"
     )
     parser.add_argument(

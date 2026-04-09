@@ -421,40 +421,57 @@ def main():
     print("\n=== Generating rectangular plots ===")
 
     # ---------------------------------------------------------
-    # Remove Big Rectangular Monkey vs ANN Plot
+    # Plot 1: Full rectangular Monkey x ANN matrix
     # ---------------------------------------------------------
-    # The big_rectangular_monkey_vs_ann plot is no longer needed, so we skip its generation.
-    print("\n=== Skipping big_rectangular_monkey_vs_ann plot ===")
+    x_boundaries = build_x_boundaries(ann_keys_by_area, AREAS)
+
+    full_plot_path = path.join(out_dir, "big_rectangular_monkey_vs_ann.png")
+    plot_rectangular_matrix(
+        matrix=full_corr,
+        row_labels=monkey_labels,
+        col_labels=all_ann_keys,
+        save_path=full_plot_path,
+        title=f"Monkey vs ANN cross-correlation\n{model_name} ({args.metric}, {args.rdm_type})",
+        xlabel="ANN layer / timestep",
+        ylabel="Monkey time (ms)",
+        vmin=-1,
+        vmax=1,
+        cmap="RdBu_r",
+        x_group_boundaries=x_boundaries,
+    )
+    print(f"  [SAVED] {full_plot_path}")
 
     # ---------------------------------------------------------
-    # Add Model Name to Titles of All Other Plots
+    # Plot 2: Per-area rectangular heatmaps
     # ---------------------------------------------------------
-    print("\n=== Adding model name to all plot titles ===")
+    available_areas = [a for a in AREAS if a in area_corr_data]
 
-    # Update per-area plots
     for area in available_areas:
         info = area_corr_data[area]
         cross = info["corr"]
         a_ts = info["ann_timesteps"]
 
-        area_vmax = np.max(cross)
         save_path = path.join(out_dir, f"{area}_rectangular_cross_correlation.png")
         plot_rectangular_matrix(
             matrix=cross,
             row_labels=monkey_labels,
             col_labels=[f"t{t}" for t in a_ts],
             save_path=save_path,
-            title=f"{area}: Monkey vs ANN timestep correlation\nModel: {model_name}",
+            title=f"{area}: Monkey vs ANN timestep correlation",
             xlabel="ANN timestep",
             ylabel="Monkey time (ms)",
-            vmin=-area_vmax,
-            vmax=area_vmax,
+            vmin=-1,
+            vmax=1,
             cmap="RdBu_r",
             figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),
         )
-        print(f"  [UPDATED] {save_path} with model name in title")
+        print(f"  [SAVED] {save_path}")
 
-    # Update line plots
+    # ---------------------------------------------------------
+    # Plot 3: Per-area line plots
+    # x-axis = monkey time
+    # one line per ANN timestep
+    # ---------------------------------------------------------
     for area in available_areas:
         info = area_corr_data[area]
         cross = info["corr"]  # (n_monkey_times, n_area_timesteps)
@@ -472,7 +489,7 @@ def main():
 
         ax.set_xlabel("Monkey time (ms)")
         ax.set_ylabel("Correlation")
-        ax.set_title(f"{area} – ANN timesteps vs monkey RDM timecourse\nModel: {model_name}")
+        ax.set_title(f"{area} – ANN timesteps vs monkey RDM timecourse")
         ax.legend(fontsize=7, ncol=max(1, len(a_ts) // 4), loc="best")
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -480,9 +497,12 @@ def main():
         line_path = path.join(out_dir, f"{area}_correlation_curves.png")
         plt.savefig(line_path, dpi=300, bbox_inches="tight")
         plt.close()
-        print(f"  [UPDATED] {line_path} with model name in title")
+        print(f"  [SAVED] {line_path}")
 
-    # Update summary plots
+    # ---------------------------------------------------------
+    # Plot 4: Summary line plot – best ANN match per area
+    # For each monkey timepoint, take best ANN timestep within each area
+    # ---------------------------------------------------------
     if len(available_areas) > 0:
         fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -510,8 +530,11 @@ def main():
         summary_path = path.join(out_dir, "summary_best_corr_per_area.png")
         plt.savefig(summary_path, dpi=300, bbox_inches="tight")
         plt.close()
-        print(f"  [UPDATED] {summary_path} with model name in title")
+        print(f"  [SAVED] {summary_path}")
 
+    # ---------------------------------------------------------
+    # Plot 5: Summary line plot – best area+timestep overall
+    # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(10, 5))
     best_overall = np.max(full_corr, axis=1)
 
@@ -525,7 +548,7 @@ def main():
     overall_path = path.join(out_dir, "summary_best_overall_corr.png")
     plt.savefig(overall_path, dpi=300, bbox_inches="tight")
     plt.close()
-    print(f"  [UPDATED] {overall_path} with model name in title")
+    print(f"  [SAVED] {overall_path}")
 
     # ---------------------------------------------------------
     # Adjusted Big Second-Order RDMs: Rectangular
@@ -587,7 +610,7 @@ def main():
             row_labels=monkey_labels,
             col_labels=[f"t{t}" for t in a_ts],
             save_path=save_path,
-            title=f"{area}: Monkey vs ANN timestep correlation\nModel: {model_name}",
+            title=f"{area}: Monkey vs ANN timestep correlation",
             xlabel="ANN timestep",
             ylabel="Monkey time (ms)",
             vmin=-area_vmax,
@@ -595,7 +618,7 @@ def main():
             cmap="RdBu_r",
             figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),
         )
-        print(f"  [UPDATED] {save_path} with model name in title")
+        print(f"  [UPDATED] {save_path} with dynamic color scale")
 
     print(f"\nDone. All rectangular outputs saved to: {out_dir}")
 

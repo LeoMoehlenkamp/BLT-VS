@@ -15,7 +15,7 @@ SAVE_DIR="analysis_outputs/second_order_ann_vs_monkey"
 METRIC="cosine"
 RDM_TYPE="ranked"
 PLOT_PANELS=1
-T_STEP=2
+T_STEP=10
 
 spack load miniconda3
 spack load git

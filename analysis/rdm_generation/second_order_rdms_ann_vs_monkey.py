@@ -575,6 +575,13 @@ def main():
 
     # Plot the rectangular second-order RDM
     big_second_order_plot_path = path.join(out_dir, "big_second_order_rdms_rectangular.png")
+    # ---------------------------------------------------------
+    # Adjust color scale dynamically based on data
+    # ---------------------------------------------------------
+    print("\n=== Adjusting color scale dynamically for plots ===")
+
+    # Update the big second-order RDM plot
+    big_second_order_vmax = np.max(big_second_order_corr)
     plot_rectangular_matrix(
         matrix=big_second_order_corr,
         row_labels=monkey_labels,
@@ -583,12 +590,35 @@ def main():
         title=f"Big Second-Order RDMs: Monkey vs ANN\n{model_name} ({args.metric}, {args.rdm_type})",
         xlabel="ANN layer / timestep",
         ylabel="Monkey time (ms)",
-        vmin=-1,
-        vmax=1,
+        vmin=-big_second_order_vmax,
+        vmax=big_second_order_vmax,
         cmap="RdBu_r",
         x_group_boundaries=x_boundaries,
     )
-    print(f"  [SAVED] {big_second_order_plot_path}")
+    print(f"  [UPDATED] {big_second_order_plot_path} with dynamic color scale")
+
+    # Update per-area plots
+    for area in available_areas:
+        info = area_corr_data[area]
+        cross = info["corr"]
+        a_ts = info["ann_timesteps"]
+
+        area_vmax = np.max(cross)
+        save_path = path.join(out_dir, f"{area}_rectangular_cross_correlation.png")
+        plot_rectangular_matrix(
+            matrix=cross,
+            row_labels=monkey_labels,
+            col_labels=[f"t{t}" for t in a_ts],
+            save_path=save_path,
+            title=f"{area}: Monkey vs ANN timestep correlation",
+            xlabel="ANN timestep",
+            ylabel="Monkey time (ms)",
+            vmin=-area_vmax,
+            vmax=area_vmax,
+            cmap="RdBu_r",
+            figsize=(max(5, len(a_ts) * 0.65), max(4, len(monkey_labels) * 0.35)),
+        )
+        print(f"  [UPDATED] {save_path} with dynamic color scale")
 
     print(f"\nDone. All rectangular outputs saved to: {out_dir}")
 

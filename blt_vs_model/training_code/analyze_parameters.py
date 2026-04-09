@@ -3,7 +3,7 @@ Parameter Analysis Script for BLT-VS Models
 
 Instantiates one or more BLT-VS model configurations and prints a detailed
 breakdown of parameter counts per area, per connection type, and per
-bottleneck module.  No GPU or dataset required – runs on CPU in seconds.
+bottleneck module.
 
 Usage Examples:
 ---------------
@@ -115,6 +115,14 @@ def bottleneck_label(bn_dict):
     return ", ".join(parts)
 
 
+
+"""
+most important function:
+p = tensor with weights
+numel() = number of values in tensor
+requires_grad = wether it is trained
+all of this comes form PyTorch
+"""
 def count_params(module):
     """Count total and trainable parameters of a module."""
     total = sum(p.numel() for p in module.parameters())

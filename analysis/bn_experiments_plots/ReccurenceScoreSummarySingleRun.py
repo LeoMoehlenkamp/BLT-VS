@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # ---- PATH TO YOUR FILE ----
-npz_path = r"C:\Users\moehl\Logs\Exp\final\BNall\BLT_VS~1\LOSS_B~1.NPZ"
+npz_path = r"C:\Users\moehl\Logs\blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-32_LGNV1-32_V1V2-32_V2V3-32_V3V4-32_V4LOC-32__20260404_155501\loss_blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-32_LGNV1-32_V1V2-32_V2V3-32_V3V4-32_V4LOC-32__20260404_155501.npz"
 
 # ---- LOAD DATA ----
 data = np.load(npz_path)

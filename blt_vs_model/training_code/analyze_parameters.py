@@ -31,8 +31,8 @@ import argparse
 import sys
 import os
 import json
-import torch
-import torch.nn as nn
+import torch # type: ignore
+import torch.nn as nn # type: ignore
 import numpy as np
 from collections import OrderedDict
 

@@ -35,8 +35,8 @@ import warnings
 import json
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-import torch
-import torch.nn as nn
+import torch # type: ignore
+import torch.nn as nn # type: ignore
 import numpy as np
 import time
 

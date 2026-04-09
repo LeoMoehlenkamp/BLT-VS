@@ -93,13 +93,26 @@ def correlate_rdm_movie_with_models(rdm_timecourse, target_rdms, model_keys):
 
 
 def extract_matching_keys(npz_file, area, metric, rdm_type):
-    """Return sorted (timestep, key) pairs for a given area/metric/rdm_type."""
-    pattern = re.compile(rf"^{area}_t(\d+)_rdm_{metric}_{rdm_type}$")
+    """
+    Return sorted (timestep, key) pairs for a given area/metric/rdm_type.
+
+    Supports two key formats:
+      New (save_ann_rdms_extended.py): {area}_t{T}_rdm_{metric}_{rdm_type}
+      Old (save_ann_rdms.py):          {area}_t{T}_rdm_ranked_sorted  /  {area}_t{T}_rdm_sorted
+    """
+    # New format: includes metric name
+    pattern_new = re.compile(rf"^{area}_t(\d+)_rdm_{metric}_{rdm_type}$")
+
+    # Old format: no metric, uses 'ranked_sorted' or 'sorted'
+    old_suffix = "ranked_sorted" if rdm_type == "ranked" else "sorted"
+    pattern_old = re.compile(rf"^{area}_t(\d+)_rdm_{old_suffix}$")
+
     matches = []
     for key in npz_file.files:
-        m = pattern.match(key)
+        m = pattern_new.match(key) or pattern_old.match(key)
         if m:
             matches.append((int(m.group(1)), key))
+
     matches.sort(key=lambda x: x[0])
     return matches
 

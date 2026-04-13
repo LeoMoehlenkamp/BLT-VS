@@ -37,7 +37,7 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --timesteps 12 \
     --lateral_connections 1 \
     --topdown_connections 0 \
-    --skip_connections 0 \
+    --skip_connections 1 \
     --bio_unroll 1 \
     --batch_size 64 \
     --batch_size_val_test 64 \

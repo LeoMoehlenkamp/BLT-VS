@@ -612,13 +612,12 @@ def main():
         if area not in ann_keys_by_area:
             continue
         block_size = len(ann_keys_by_area[area])
-        color = AREA_COLORS.get(area, "white")
 
         for row_idx in range(n_rows):
             block_corrs = big_second_order_corr[row_idx, block_offset:block_offset + block_size]
             best_local = np.argmax(block_corrs)
             best_col = block_offset + best_local
-            ax.scatter(best_col, row_idx, color=color, edgecolors="black",
+            ax.scatter(best_col, row_idx, color="white", edgecolors="black",
                        linewidths=0.5, s=30, zorder=5)
 
         block_offset += block_size
@@ -641,19 +640,6 @@ def main():
         f"{model_name} ({args.metric}, {args.rdm_type})",
         fontsize=11,
     )
-
-    # Legend for area dot colors
-    from matplotlib.lines import Line2D
-    legend_handles = []
-    for area in AREAS:
-        if area in ann_keys_by_area:
-            legend_handles.append(
-                Line2D([0], [0], marker='o', color='w',
-                       markerfacecolor=AREA_COLORS.get(area, "gray"),
-                       markeredgecolor="black", markersize=6, label=area)
-            )
-    ax.legend(handles=legend_handles, fontsize=7, loc="upper right",
-              title="Best timestep", title_fontsize=7)
 
     plt.tight_layout()
     overlay_path = path.join(out_dir, "big_second_order_similarity_best_timestep.png")

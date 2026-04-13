@@ -583,6 +583,84 @@ def main():
     )
     print(f"  [UPDATED] {big_second_order_plot_path} with dynamic color scale")
 
+    # ---------------------------------------------------------
+    # Plot: Big second-order similarity + best timestep dots
+    # For each monkey timepoint (row) and each ANN layer (block),
+    # plot a dot at the column index of the best-matching ANN timestep.
+    # If dynamics are similar, dots should form diagonals per block.
+    # ---------------------------------------------------------
+    print("\n=== Generating best-timestep overlay plot ===")
+
+    n_rows, n_cols = big_second_order_corr.shape
+    fig_w = max(12, n_cols * 0.35)
+    fig_h = max(4, n_rows * 0.4)
+
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+    im = ax.imshow(
+        big_second_order_corr,
+        aspect="auto",
+        interpolation="nearest",
+        cmap="Reds",
+        vmin=big_second_order_vmin,
+        vmax=big_second_order_vmax,
+    )
+
+    # Compute block offsets for each area
+    block_offset = 0
+    for area in AREAS:
+        if area not in ann_keys_by_area:
+            continue
+        block_size = len(ann_keys_by_area[area])
+        color = AREA_COLORS.get(area, "white")
+
+        for row_idx in range(n_rows):
+            block_corrs = big_second_order_corr[row_idx, block_offset:block_offset + block_size]
+            best_local = np.argmax(block_corrs)
+            best_col = block_offset + best_local
+            ax.scatter(best_col, row_idx, color=color, edgecolors="black",
+                       linewidths=0.5, s=30, zorder=5)
+
+        block_offset += block_size
+
+    ax.set_yticks(np.arange(n_rows))
+    ax.set_yticklabels(monkey_labels, fontsize=7)
+    ax.set_ylabel("Monkey time (ms)")
+
+    ax.set_xticks(np.arange(n_cols))
+    ax.set_xticklabels(all_ann_keys, rotation=90, fontsize=5)
+    ax.set_xlabel("ANN layer / timestep")
+
+    if x_boundaries is not None:
+        for b in x_boundaries:
+            ax.axvline(b - 0.5, color="white", linewidth=1, linestyle="--")
+
+    fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02, label="Correlation")
+    ax.set_title(
+        f"Second-Order Similarity + Best Timestep per Layer\n"
+        f"{model_name} ({args.metric}, {args.rdm_type})",
+        fontsize=11,
+    )
+
+    # Legend for area dot colors
+    from matplotlib.lines import Line2D
+    legend_handles = []
+    for area in AREAS:
+        if area in ann_keys_by_area:
+            legend_handles.append(
+                Line2D([0], [0], marker='o', color='w',
+                       markerfacecolor=AREA_COLORS.get(area, "gray"),
+                       markeredgecolor="black", markersize=6, label=area)
+            )
+    ax.legend(handles=legend_handles, fontsize=7, loc="upper right",
+              title="Best timestep", title_fontsize=7)
+
+    plt.tight_layout()
+    overlay_path = path.join(out_dir, "big_second_order_similarity_best_timestep.png")
+    plt.savefig(overlay_path, dpi=300, bbox_inches="tight")
+    plt.close()
+    print(f"  [SAVED] {overlay_path}")
+
     # Update per-area plots
     for area in available_areas:
         info = area_corr_data[area]

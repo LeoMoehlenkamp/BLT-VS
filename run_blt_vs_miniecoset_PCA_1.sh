@@ -1,9 +1,10 @@
 #!/bin/bash
-#SBATCH --partition=klab-l40s
+#SBATCH --partition=klab-gpu
 #SBATCH --nodes=1
 #SBATCH -c 12
 #SBATCH --mem=16G
 #SBATCH --gres=gpu:1
+#SBATCH --constraint=H100.80gb
 #SBATCH --time=12:00:00
 #SBATCH --job-name=BLT
 #SBATCH --output=logs/%x_%j.out

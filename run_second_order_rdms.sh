@@ -8,7 +8,7 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-ANN_RDM_PATH="analysis_outputs/ann_rdms/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523_cosine_ranked/ann_rdms/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523_ann_rdms.npz"
+ANN_RDM_PATH="analysis_outputs/ann_rdms/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523_cosine_ranked/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523_ann_rdms.npz"
 MONKEY_PKL_PATH="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_lfp_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_lfp.pkl"
 STIMULUS_CSV="/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
 SAVE_DIR="analysis_outputs/second_order_ann_vs_monkey"

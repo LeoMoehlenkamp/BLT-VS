@@ -17,6 +17,8 @@ parser.add_argument("--parent_dir", type=str,
                     default=r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451")
 parser.add_argument("--save_root", type=str, default=None,
                     help="Save root dir. Defaults to parent_dir if not set.")
+parser.add_argument("--model_name", type=str, default=None,
+                    help="If set, only process folders starting with this model name.")
 args = parser.parse_args()
 
 parent_dir = args.parent_dir
@@ -57,6 +59,9 @@ for run_folder in os.listdir(parent_dir):
     full_run_path = path.join(parent_dir, run_folder)
 
     if not path.isdir(full_run_path):
+        continue
+
+    if args.model_name and not run_folder.startswith(args.model_name):
         continue
 
     print(f"\n==============================")

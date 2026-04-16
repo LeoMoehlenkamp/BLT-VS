@@ -9,7 +9,7 @@
 #SBATCH --error=logs/%x_%j.err
 
 MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523"
-PARENT_DIR="analysis_outputs/ann_rdms/${MODEL_NAME}"
+PARENT_DIR="analysis_outputs/ann_rdms"
 SAVE_ROOT="analysis_outputs/second_order_ann/${MODEL_NAME}"
 
 spack load miniconda3
@@ -40,7 +40,8 @@ cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 
 python analysis/rdm_generation/second_order_rdms_extended.py \
     --parent_dir "$PARENT_DIR" \
-    --save_root "$SAVE_ROOT"
+    --save_root "$SAVE_ROOT" \
+    --model_name "$MODEL_NAME"
 
 echo "====================================="
 echo "Finished: $(date)"

@@ -1,9 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import argparse
 
-# ---- PATH TO YOUR FILE ----
-npz_path = r"C:\Users\moehl\Logs\Exp\final\BL_skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523.npz"
+# ---- CLI ARGS (with local default) ----
+parser = argparse.ArgumentParser()
+parser.add_argument("--npz_path", type=str,
+                    default=r"C:\Users\moehl\Logs\Exp\final\BL_skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523.npz")
+args = parser.parse_args()
+
+npz_path = args.npz_path
 
 # ---- LOAD DATA ----
 data = np.load(npz_path)

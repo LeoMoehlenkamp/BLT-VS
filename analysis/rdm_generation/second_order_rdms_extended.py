@@ -1,6 +1,7 @@
 import os
 from os import path
 import re
+import argparse
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -10,9 +11,16 @@ from scipy.stats import spearmanr
 
 AREAS = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
 
-# NEU: Parent Ordner mit 4 Runs
-parent_dir = r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451"
-save_root = r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451"
+# CLI args (mit Fallback auf lokale Defaults)
+parser = argparse.ArgumentParser()
+parser.add_argument("--parent_dir", type=str,
+                    default=r"C:\Users\moehl\Logs\RDM_tests\bnall16__20260402_123451")
+parser.add_argument("--save_root", type=str, default=None,
+                    help="Save root dir. Defaults to parent_dir if not set.")
+args = parser.parse_args()
+
+parent_dir = args.parent_dir
+save_root = args.save_root if args.save_root else parent_dir
 
 single_figsize = (5, 4.5)
 overview_scale = 4.0

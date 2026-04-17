@@ -106,6 +106,7 @@ parser.add_argument('--bottlenecks', type=str, default='', help='comma list like
 parser.add_argument('--grad_clipping', type=int, default=1)
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
+parser.add_argument('--name', type=str, default='', help='Optional custom name for the run. Overrides the auto-generated name.')
 
 args = parser.parse_args()
 
@@ -276,13 +277,16 @@ if __name__ == '__main__':
     dataset_name = hyp["dataset"]["name"]
     timesteps = hyp["network"]["timesteps"]
 
-    net_name = (
-        f"{network_name}__"
-        f"{dataset_name}__"
-        f"ts{timesteps}__"
-        f"bn-{bottleneck_str}__"
-        f"{timestamp}"
-    )
+    if args.name:
+        net_name = f"{args.name}__{timestamp}"
+    else:
+        net_name = (
+            f"{network_name}__"
+            f"{dataset_name}__"
+            f"ts{timesteps}__"
+            f"bn-{bottleneck_str}__"
+            f"{timestamp}"
+        )
 
     net = net.float()
 

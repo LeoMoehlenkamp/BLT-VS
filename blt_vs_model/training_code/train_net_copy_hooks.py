@@ -120,7 +120,7 @@ import numpy as np
 import time
 import json
 import inspect
-from helpers.helper_funcs import get_Dataset_loaders, create_folders_logging, LinearFitScheduler
+from helpers.helper_funcs import get_Dataset_loaders, create_folders_logging, LinearFitScheduler, compute_first_signal
 from models.helper_funcs import get_network_model, get_optimizer, eval_network, compute_accuracy, adaptive_gradient_clipping, calculate_flops
 import gc
 
@@ -655,15 +655,9 @@ if __name__ == '__main__':
     model_for_extract.eval()
 
     #Setup for unexpected values in layers
-    first_signal = {
-    "Retina": 0,
-    "LGN": 1,
-    "V1": 2,
-    "V2": 3,
-    "V3": 4,
-    "V4": 5,
-    "LOC": 6
-}
+    first_signal = compute_first_signal(hyp["network"]["bottlenecks"], hyp["network"]["skip_connections"])
+    print(f"Computed first_signal based on connections: {first_signal}")
+    
     threshold = 1e-8
 
     with torch.no_grad():

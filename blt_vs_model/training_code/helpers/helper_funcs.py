@@ -623,3 +623,61 @@ def create_folders_logging(net_name, create_folders=True):
         print('Specific net folder is created!')
 
     return log_folder_name, net_folder_name 
+
+
+def compute_first_signal(bottlenecks, skip_connections):
+    """Compute earliest possible signal arrival per area based on network connections.
+
+    With bio_unroll, the feedforward path is:
+        Retina(t=0) -> LGN(t=1) -> V1(t=2) -> V2(t=3) -> V3(t=4) -> V4(t=5) -> LOC(t=6)
+
+    Skip connections (e.g. V1->V4_skip) allow signals to arrive earlier.
+    The skip signal arrives one timestep after the source area first has activity.
+    Changes propagate through the feedforward chain (e.g. V4 earlier -> LOC earlier).
+    """
+    # Feedforward chain: each area receives from the previous one
+    ff_chain = [
+        ("Retina", "LGN"),
+        ("LGN", "V1"),
+        ("V1", "V2"),
+        ("V2", "V3"),
+        ("V3", "V4"),
+        ("V4", "LOC"),
+    ]
+
+    first_signal = {
+        "Retina": 0,
+        "LGN": 1,
+        "V1": 2,
+        "V2": 3,
+        "V3": 4,
+        "V4": 5,
+        "LOC": 6,
+    }
+
+    if not skip_connections:
+        return first_signal
+
+    # Parse skip connections from bottleneck config
+    skip_edges = []
+    for edge in bottlenecks:
+        if "->" in edge and edge.endswith("_skip"):
+            base_edge = edge[:-5]  # strip "_skip"
+            src, dst = base_edge.split("->", 1)
+            skip_edges.append((src, dst))
+
+    # Combine feedforward + skip edges, then relax until stable
+    all_edges = ff_chain + skip_edges
+
+    changed = True
+    while changed:
+        changed = False
+        for src, dst in all_edges:
+            if src not in first_signal or dst not in first_signal:
+                continue
+            new_timing = first_signal[src] + 1
+            if new_timing < first_signal[dst]:
+                first_signal[dst] = new_timing
+                changed = True
+
+    return first_signal

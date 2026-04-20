@@ -58,17 +58,9 @@ IMAGE_ROOT = "/share/klab/datasets/THINGS_drift/stimuli"
 
 SAVE_PATH = f"analysis_outputs/ann_features/{MODEL_NAME}_features.npz"
 
-AREAS = ["Retina","LGN","V1","V2","V3","V4","LOC"]
+from blt_vs_model.training_code.helpers.helper_funcs import compute_first_signal
 
-first_signal = {
-    "Retina": 0,
-    "LGN": 1,
-    "V1": 2,
-    "V2": 3,
-    "V3": 4,
-    "V4": 5,
-    "LOC": 6
-}
+AREAS = ["Retina","LGN","V1","V2","V3","V4","LOC"]
 
 # ============================
 # LOAD MODEL
@@ -174,6 +166,13 @@ print(f"Loaded {len(dataset)} images")
 # ============================
 
 model, hyp = load_model_from_name(MODEL_NAME)
+
+# Compute first_signal dynamically from model config
+first_signal = compute_first_signal(
+    hyp.get("network", {}).get("bottlenecks", {}),
+    hyp.get("network", {}).get("skip_connections", 0)
+)
+print(f"Computed first_signal: {first_signal}")
 
 timesteps = list(range(model.timesteps))
 

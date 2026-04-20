@@ -12,7 +12,7 @@
 # =============================================
 # CONFIGURE HERE
 # =============================================
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-bnall32skip__20260414_204403"
 USE_BEST=1
 
 # =============================================

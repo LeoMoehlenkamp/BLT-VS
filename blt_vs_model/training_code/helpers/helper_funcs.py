@@ -658,13 +658,18 @@ def compute_first_signal(bottlenecks, skip_connections):
     if not skip_connections:
         return first_signal
 
-    # Parse skip connections from bottleneck config
+    # Parse skip connections from bottleneck config (explicit "_skip" keys)
     skip_edges = []
     for edge in bottlenecks:
         if "->" in edge and edge.endswith("_skip"):
             base_edge = edge[:-5]  # strip "_skip"
             src, dst = base_edge.split("->", 1)
             skip_edges.append((src, dst))
+
+    # If skip_connections=1 but no explicit skip edges in bottlenecks,
+    # fall back to the hardcoded architecture skips: V1->V4 (bottom-up) and V4->V1 (top-down)
+    if not skip_edges:
+        skip_edges = [("V1", "V4"), ("V4", "V1")]
 
     # Combine feedforward + skip edges, then relax until stable
     all_edges = ff_chain + skip_edges

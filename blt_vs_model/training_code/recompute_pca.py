@@ -38,10 +38,6 @@ parser.add_argument("--model_name", type=str, required=True,
                     help="Name of the model folder (in logs/perf_logs/ and logs/net_params/)")
 parser.add_argument("--use_best", type=int, default=1,
                     help="1 = load BEST weights, 0 = load LAST weights")
-parser.add_argument("--max_batches", type=int, default=50,
-                    help="Number of validation batches for PCA accumulation")
-parser.add_argument("--batch_size", type=int, default=64,
-                    help="Batch size for validation loader")
 parser.add_argument("--device", type=str, default="cuda",
                     help="Device to run on (cuda or cpu)")
 
@@ -77,9 +73,8 @@ print(f"  Timesteps: {hyp['network']['timesteps']}")
 print(f"  Bottlenecks: {hyp['network'].get('bottlenecks', {})}")
 print(f"  Skip connections: {hyp['network'].get('skip_connections', 0)}")
 
-# Override batch size and device
+# Use device from argument, all other settings come from config (same as training)
 hyp["optimizer"]["device"] = DEVICE
-hyp["misc"]["batch_size_val_test"] = args.batch_size
 
 # ============================
 # LOAD MODEL
@@ -145,7 +140,8 @@ counts = {}
 threshold = 1e-8
 extract_batches = 0
 
-print(f"\nExtracting PCA statistics ({args.max_batches} batches)...")
+max_extract_batches = 50
+print(f"\nExtracting PCA statistics ({max_extract_batches} batches, same as training)...")
 
 with torch.no_grad():
     for images, labels in val_loader:
@@ -197,7 +193,7 @@ with torch.no_grad():
                 counts[key] += X.shape[0]
 
         extract_batches += 1
-        if extract_batches >= args.max_batches:
+        if extract_batches >= max_extract_batches:
             break
 
 print(f"Finished accumulating covariance matrices ({extract_batches} batches).")

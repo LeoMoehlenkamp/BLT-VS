@@ -2,7 +2,7 @@
 #SBATCH --partition=klab-l40s
 #SBATCH --nodes=1
 #SBATCH -c 4
-#SBATCH --mem=12G
+#SBATCH --mem=16G
 #SBATCH --gres=gpu:1
 #SBATCH --time=02:00:00
 #SBATCH --job-name=full_pipe
@@ -12,7 +12,7 @@
 # =============================================
 # CONFIGURE HERE
 # =============================================
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-bnall96skip__20260417_124020"
 USE_BEST=1
 BATCH_SIZE=32
 PLOT_PANELS=1

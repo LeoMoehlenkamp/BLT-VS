@@ -38,6 +38,8 @@ nvidia-smi
 
 cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 
+export PYTHONPATH="/share/klab/danthes/lemoehlenkam/BLT-VS/blt_vs_model/training_code:${PYTHONPATH}"
+
 echo ""
 echo "######################################################################"
 echo "# RECOMPUTE PCA"
@@ -46,9 +48,7 @@ echo "# use_best: $USE_BEST"
 echo "# Start:    $(date)"
 echo "######################################################################"
 
-cd blt_vs_model/training_code || exit 1
-
-python recompute_pca.py \
+python blt_vs_model/training_code/recompute_pca.py \
     --model_name "$MODEL_NAME" \
     --use_best "$USE_BEST"
 

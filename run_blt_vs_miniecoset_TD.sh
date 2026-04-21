@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=klab-gpu
-#SBATCH --constraint= H100.80gb
+#SBATCH --constraint=H100.80gb
 #SBATCH --nodes=1
 #SBATCH -c 12
 #SBATCH --mem=16G

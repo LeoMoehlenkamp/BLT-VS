@@ -169,10 +169,12 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         self.dst_to_edge = {}
         # Map: skip edge key -> edge string (for skip bottlenecks)
         self.skip_bottlenecks_cfg = {}  # e.g. {"V1->V4_skip": 32, "V4->V1_skip": 32}
+        # Map: top-down edge key -> channels (for TD bottlenecks)
+        self.td_bottlenecks_cfg = {}  # e.g. {"LOC->V4_td": 128}
 
         for edge in self.bottlenecks_cfg:
             if "->" not in edge:
-                raise ValueError(f"Bad bottleneck edge '{edge}'. Use 'A->B' or 'A->B_skip'.")
+                raise ValueError(f"Bad bottleneck edge '{edge}'. Use 'A->B', 'A->B_skip', or 'A->B_td'.")
 
             # Detect skip bottleneck edges (e.g. "V1->V4_skip")
             if edge.endswith("_skip"):
@@ -184,6 +186,20 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                 if not ((src == "V1" and dst == "V4") or (src == "V4" and dst == "V1")):
                     raise ValueError(f"Skip bottleneck '{edge}' invalid. Only V1->V4_skip and V4->V1_skip supported.")
                 self.skip_bottlenecks_cfg[edge] = self.bottlenecks_cfg[edge]
+                continue
+
+            # Detect top-down bottleneck edges (e.g. "LOC->V4_td")
+            if edge.endswith("_td"):
+                base_edge = edge[:-3]  # strip "_td"
+                src, dst = base_edge.split("->", 1)
+                if src not in self.areas or dst not in self.areas:
+                    raise ValueError(f"Unknown area in TD edge '{edge}'. Known: {self.areas}")
+                # Validate: src must be exactly one area above dst in hierarchy
+                src_idx = self.areas.index(src)
+                dst_idx = self.areas.index(dst)
+                if src_idx != dst_idx + 1:
+                    raise ValueError(f"TD bottleneck '{edge}' invalid. Source must be one area above destination (got {src}[{src_idx}] -> {dst}[{dst_idx}]).")
+                self.td_bottlenecks_cfg[edge] = self.bottlenecks_cfg[edge]
                 continue
 
             src, dst = edge.split("->", 1)
@@ -201,8 +217,8 @@ class BLT_VS_ModularBottlenecks(nn.Module):
 
         # Build actual bottleneck modules for feedforward edges
         for edge, out_ch in self.bottlenecks_cfg.items():
-            if edge.endswith("_skip"):
-                continue  # skip edges handled below
+            if edge.endswith("_skip") or edge.endswith("_td"):
+                continue  # skip and td edges handled below
             src, dst = edge.split("->", 1)
             src_idx = self.areas.index(src)
             in_ch = self.channel_sizes[src_idx]
@@ -218,6 +234,18 @@ class BLT_VS_ModularBottlenecks(nn.Module):
             src, dst = base_edge.split("->", 1)
             src_idx = self.areas.index(src)
             in_ch = self.channel_sizes[src_idx]
+
+            self.bottlenecks[edge] = nn.Sequential(
+                nn.Conv2d(in_ch, int(out_ch), kernel_size=1, stride=1, padding=0),
+                nn.ReLU(inplace=True),
+            )
+
+        # Build bottleneck modules for top-down edges
+        for edge, out_ch in self.td_bottlenecks_cfg.items():
+            base_edge = edge[:-3]  # e.g. "LOC->V4"
+            src, dst = base_edge.split("->", 1)
+            src_idx = self.areas.index(src)
+            in_ch = self.channel_sizes[src_idx]  # TD signal has source area's channel count
 
             self.bottlenecks[edge] = nn.Sequential(
                 nn.Conv2d(in_ch, int(out_ch), kernel_size=1, stride=1, padding=0),
@@ -260,6 +288,15 @@ class BLT_VS_ModularBottlenecks(nn.Module):
             if idx == 2 and "V4->V1_skip" in self.skip_bottlenecks_cfg:
                 skip_td_in_override = int(self.skip_bottlenecks_cfg["V4->V1_skip"])
 
+            # Determine TD in_channels override from TD bottlenecks
+            # TD into area at idx comes from area at idx+1
+            td_in_override = None
+            if idx < len(self.areas) - 1:
+                src_area = self.areas[idx + 1]
+                td_edge_key = f"{src_area}->{area}_td"
+                if td_edge_key in self.td_bottlenecks_cfg:
+                    td_in_override = int(self.td_bottlenecks_cfg[td_edge_key])
+
             self.connections[area] = BLT_VS_Layer(
                 layer_n=idx,
                 channel_sizes=self.channel_sizes_for_layers,
@@ -285,6 +322,7 @@ class BLT_VS_ModularBottlenecks(nn.Module):
 
                 skip_bu_in_channels_override=skip_bu_in_override,
                 skip_td_in_channels_override=skip_td_in_override,
+                td_in_channels_override=td_in_override,
 
                 image_size=image_size,
 
@@ -334,6 +372,22 @@ class BLT_VS_ModularBottlenecks(nn.Module):
             elif src == "V4" and dst == "V1":
                 actual_in = self.connections["V1"].skip_td_depthwise.in_channels
                 assert actual_in == out_expected, f"V1 skip_td_depthwise.in_channels={actual_in} != {out_expected} for {edge}"
+
+        # Sanity check TD bottlenecks
+        for edge, out_ch in self.td_bottlenecks_cfg.items():
+            assert edge in self.bottlenecks, f"Missing bottleneck module for {edge}"
+            base_edge = edge[:-3]
+            src, dst = base_edge.split("->", 1)
+            src_idx = self.areas.index(src)
+            in_expected = self.channel_sizes[src_idx]
+            out_expected = int(out_ch)
+            conv = self.bottlenecks[edge][0]
+            assert conv.in_channels == in_expected, f"{edge}: conv.in_channels={conv.in_channels} != {in_expected}"
+            assert conv.out_channels == out_expected, f"{edge}: conv.out_channels={conv.out_channels} != {out_expected}"
+
+            # Check td_conv in destination layer accepts bottleneck output channels
+            actual_in = self.connections[dst].td_conv.in_channels
+            assert actual_in == out_expected, f"{dst} td_conv.in_channels={actual_in} != bottleneck_out={out_expected} for {edge}"
 
         print("[SANITY] Bottleneck wiring OK")
 
@@ -557,12 +611,22 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                             td_skip = self.apply_bottleneck("V4->V1_skip", td_skip)
 
                         # -------------------------------------------------
+                        # Apply TD bottleneck if configured
+                        # -------------------------------------------------
+                        td_input = td_activations_old[idx + 2]
+                        src_area = self.areas[idx + 2] if (idx + 2) < len(self.areas) else None
+                        if src_area is not None:
+                            td_edge_key = f"{src_area}->{area}_td"
+                            if td_input is not None and td_edge_key in self.bottlenecks:
+                                td_input = self.apply_bottleneck(td_edge_key, td_input)
+
+                        # -------------------------------------------------
                         # Forward through area
                         # -------------------------------------------------
                         bu_act, td_act = self.connections[area](
                             bu_input=bu_input,
                             bu_l_input=bu_activations_old[idx + 1],
-                            td_input=td_activations_old[idx + 2],
+                            td_input=td_input,
                             td_l_input=td_activations_old[idx + 1],
                             bu_skip_input=bu_skip,
                             td_skip_input=td_skip,
@@ -666,9 +730,18 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                 if td_skip is not None and "V4->V1_skip" in self.bottlenecks:
                     td_skip = self.apply_bottleneck("V4->V1_skip", td_skip)
 
+                # Apply TD bottleneck if configured
+                area_idx = len(self.areas) - 2 - idx  # actual index in self.areas
+                td_src_idx = area_idx + 1
+                td_input = td_activations[td_src_idx]
+                if td_src_idx < len(self.areas):
+                    td_edge_key = f"{self.areas[td_src_idx]}->{area}_td"
+                    if td_input is not None and td_edge_key in self.bottlenecks:
+                        td_input = self.apply_bottleneck(td_edge_key, td_input)
+
                 _, td_act = self.connections[area](
                     bu_input=bu_activations[-(idx + 2) - 1],
-                    td_input=td_activations[-(idx + 2) + 1],
+                    td_input=td_input,
                     td_skip_input=td_skip,
                 )
                 td_activations[-(idx + 2)] = td_act
@@ -695,10 +768,18 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                     if bu_skip is not None and "V1->V4_skip" in self.bottlenecks:
                         bu_skip = self.apply_bottleneck("V1->V4_skip", bu_skip)
 
+                    # Apply TD bottleneck if configured
+                    td_input = td_activations[idx + 2]
+                    src_area = self.areas[idx + 2] if (idx + 2) < len(self.areas) else None
+                    if src_area is not None:
+                        td_edge_key = f"{src_area}->{area}_td"
+                        if td_input is not None and td_edge_key in self.bottlenecks:
+                            td_input = self.apply_bottleneck(td_edge_key, td_input)
+
                     bu_act, _ = self.connections[area](
                         bu_input=bu_activations[idx],
                         bu_l_input=bu_activations[idx + 1],
-                        td_input=td_activations[idx + 2],
+                        td_input=td_input,
                         bu_skip_input=bu_skip,
                     )
                     bu_activations[idx + 1] = bu_act
@@ -715,9 +796,18 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                     if td_skip is not None and "V4->V1_skip" in self.bottlenecks:
                         td_skip = self.apply_bottleneck("V4->V1_skip", td_skip)
 
+                    # Apply TD bottleneck if configured
+                    area_idx = len(self.areas) - 2 - idx  # actual index in self.areas
+                    td_src_idx = area_idx + 1
+                    td_input = td_activations[td_src_idx]
+                    if td_src_idx < len(self.areas):
+                        td_edge_key = f"{self.areas[td_src_idx]}->{area}_td"
+                        if td_input is not None and td_edge_key in self.bottlenecks:
+                            td_input = self.apply_bottleneck(td_edge_key, td_input)
+
                     _, td_act = self.connections[area](
                         bu_input=bu_activations[-(idx + 2) - 1],
-                        td_input=td_activations[-(idx + 2) + 1],
+                        td_input=td_input,
                         td_l_input=td_activations[-(idx + 2)],
                         td_skip_input=td_skip,
                     )
@@ -1063,6 +1153,7 @@ class BLT_VS_Layer(nn.Module):
         bu_in_channels_override=None,
         skip_bu_in_channels_override=None,
         skip_td_in_channels_override=None,
+        td_in_channels_override=None,
         image_size=224,
     ):
         super(BLT_VS_Layer, self).__init__()
@@ -1137,8 +1228,9 @@ class BLT_VS_Layer(nn.Module):
 
             # Transposed convolution:
             # higher area → current area (upsampling)
+            td_in_ch = td_in_channels_override if td_in_channels_override is not None else channel_sizes[layer_n + 1]
             self.td_conv = nn.ConvTranspose2d(
-                in_channels=channel_sizes[layer_n + 1],
+                in_channels=td_in_ch,
                 out_channels=out_channels,
                 kernel_size=kernel_sizes[layer_n + 1],
                 stride=strides[layer_n + 1],

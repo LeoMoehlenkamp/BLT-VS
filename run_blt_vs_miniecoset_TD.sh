@@ -32,8 +32,8 @@ echo "Starting training..."
 
 python blt_vs_model/training_code/train_net_copy_hooks.py \
     --network blt_vs_bottleneck \
-    --bottlenecks "V1->V2:64,V2->V3:64,V3->V4:64,V4->LOC:64,V1->LGN_td:64,V2->V1_td:64,V3->V2_td:64,V4->V3_td:64,LOC->V4_td:64" \
-    --name "blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD" \
+    --bottlenecks "V1->V2:32,V2->V3:32,V3->V4:32,V4->LOC:32,V1->LGN_td:32,V2->V1_td:32,V3->V2_td:32,V4->V3_td:32,LOC->V4_td:32" \
+    --name "blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD" \
     --dataset_mode 0 \
     --dataset miniecoset \
     --timesteps 12 \

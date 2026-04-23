@@ -1,0 +1,50 @@
+#!/bin/bash
+#SBATCH --partition=klab-gpu
+#SBATCH --nodes=1
+#SBATCH -c 12
+#SBATCH --mem=16G
+#SBATCH --gres=gpu:1
+#SBATCH --time=24:00:00
+#SBATCH --job-name=BLT
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
+
+spack load miniconda3
+spack load git
+spack load cuda@11.8.0
+spack load cudnn@8.6.0.163-11.8
+eval "$(conda shell.bash hook)"
+
+export NCCL_SOCKET_IFNAME=lo
+mkdir -p logs
+
+# Activate Conda
+source ~/startup_conda.sh
+conda activate blt_vs
+
+echo "Conda env: $CONDA_DEFAULT_ENV"
+which python
+python --version
+nvidia-smi
+
+echo "Starting training..."
+
+python blt_vs_model/training_code/train_net_copy_hooks.py \
+    --network blt_vs_bottleneck \
+    --bottlenecks "V1->V2:96,V2->V3:96,V3->V4:96,V4->LOC:96,V1->LGN_td:96,V2->V1_td:96,V3->V2_td:96,V4->V3_td:96,LOC->V4_td:96,V1->V4_skip:96,V4->V1_skip:96" \
+    --name "blt_vs_bottleneck__miniecoset__ts12__bnall96_BU-TD-Skip" \
+    --dataset_mode 0 \
+    --dataset miniecoset \
+    --timesteps 12 \
+    --lateral_connections 1 \
+    --topdown_connections 1 \
+    --skip_connections 1 \
+    --bio_unroll 1 \
+    --batch_size 64 \
+    --batch_size_val_test 64 \
+    --n_epochs 60 \
+    --learning_rate 7.5e-4 \
+    --num_workers 4
+
+echo "-------------------------------------"
+echo "Finished: $(date)"

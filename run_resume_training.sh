@@ -31,9 +31,9 @@ nvidia-smi
 echo "Starting resume training..."
 
 python blt_vs_model/training_code/resume_training.py \
-    --run_name "blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242" \
-    --checkpoint best \
-    --n_epochs 22 \
+    --run_name "blt_vs_bottleneck__miniecoset__ts12__bnall96_BU-TD-Skip__20260423_085848" \
+    --checkpoint last \
+    --n_epochs 1 \
     --learning_rate 7.5e-5
 
 echo "-------------------------------------"

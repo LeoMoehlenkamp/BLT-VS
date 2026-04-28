@@ -13,7 +13,7 @@
 # =============================================
 # CONFIGURE HERE
 # =============================================
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-96_LGNV1-96_V1V2-96_V2V3-96_V3V4-96_V4LOC-96__20260408_114939"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
 USE_BEST=1
 BATCH_SIZE=32
 PLOT_PANELS=1

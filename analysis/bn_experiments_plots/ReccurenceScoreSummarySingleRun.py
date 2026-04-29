@@ -6,7 +6,7 @@ import argparse
 # ---- CLI ARGS (with local default) ----
 parser = argparse.ArgumentParser()
 parser.add_argument("--npz_path", type=str,
-                    default=r"C:\Users\moehl\Logs\Exp\final\BL_skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523.npz")
+                    default=r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158\loss_blt_vs_bottleneck__miniecoset__ts12__bnall96_BU-TD__20260421_120158.npz")
 args = parser.parse_args()
 
 npz_path = args.npz_path

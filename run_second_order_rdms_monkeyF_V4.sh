@@ -8,7 +8,7 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
 METRIC="cosine"
 RDM_TYPE="ranked"
 ANN_RDM_PATH="analysis_outputs/ann_rdms/${MODEL_NAME}_${METRIC}_${RDM_TYPE}/${MODEL_NAME}_ann_rdms.npz"

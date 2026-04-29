@@ -14,7 +14,7 @@ RDM_TYPE="ranked"
 ANN_RDM_PATH="analysis_outputs/ann_rdms/${MODEL_NAME}_${METRIC}_${RDM_TYPE}/${MODEL_NAME}_ann_rdms.npz"
 MONKEY_PKL_PATH="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_lfp_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_2-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_lfp.pkl"
 STIMULUS_CSV="/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
-SAVE_DIR="analysis_outputs/second_order_ann_vs_monkey_monkeyF_V4"
+SAVE_DIR="analysis_outputs/second_order_ann_vs_monkey/monkeyF_lfp_V4"
 PLOT_PANELS=1
 T_STEP=10
 

@@ -17,7 +17,7 @@
 # ============================================================
 
 # --- EDIT THESE ---
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
 RESNET_VARIANT="resnet50"
 METRIC="cosine"
 RDM_TYPE="ranked"

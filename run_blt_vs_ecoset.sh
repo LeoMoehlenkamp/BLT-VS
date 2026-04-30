@@ -3,7 +3,7 @@
 #SBATCH -w klab-8
 #SBATCH --nodes=1
 #SBATCH -c 16
-#SBATCH --mem=32G
+#SBATCH --mem=64G
 #SBATCH --gres=gpu:1
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
@@ -31,11 +31,11 @@ SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__2026031
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
 OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnall64_BU-TD-Skip"
-OVERRIDE_BATCH_SIZE="256"
-OVERRIDE_BATCH_SIZE_VAL_TEST="256"
-OVERRIDE_N_EPOCHS="60"
+OVERRIDE_BATCH_SIZE="512"
+OVERRIDE_BATCH_SIZE_VAL_TEST="512"
+OVERRIDE_N_EPOCHS="40"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
-OVERRIDE_NUM_WORKERS="8"
+OVERRIDE_NUM_WORKERS="12"
 
 # --- Environment setup ---
 spack load miniconda3

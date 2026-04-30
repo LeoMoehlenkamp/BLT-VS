@@ -39,7 +39,8 @@ AREA_COLORS = {
 
 RESNET_LAYERS = ["conv1", "layer1", "layer2", "layer3", "layer4", "avgpool"]
 
-RESNET_COLORS = {
+# Colors: assign per stage, sub-layers within a stage share the same color
+STAGE_COLORS = {
     "conv1":   "#1f77b4",
     "layer1":  "#ff7f0e",
     "layer2":  "#2ca02c",
@@ -47,6 +48,14 @@ RESNET_COLORS = {
     "layer4":  "#9467bd",
     "avgpool": "#8c564b",
 }
+
+
+def get_layer_color(layer_name):
+    """Get color for a layer based on its stage (e.g. layer2.1.conv3 -> layer2 color)."""
+    for stage in ["layer4", "layer3", "layer2", "layer1", "avgpool", "conv1"]:
+        if layer_name.startswith(stage):
+            return STAGE_COLORS[stage]
+    return "#333333"
 
 
 # ============================================================
@@ -334,7 +343,7 @@ def main():
     # ---------------------------------------------------------
     n_rows, n_cols = full_corr.shape
     fig_w = max(12, n_cols * 0.35)
-    fig_h = max(4, n_rows * 0.6)
+    fig_h = max(6, n_rows * 0.25)
 
     fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     im = ax.imshow(full_corr, aspect="auto", interpolation="nearest",
@@ -355,7 +364,7 @@ def main():
         block_offset += block_size
 
     ax.set_yticks(np.arange(n_rows))
-    ax.set_yticklabels(resnet_labels, fontsize=9)
+    ax.set_yticklabels(resnet_labels, fontsize=max(4, min(8, 200 // max(n_rows, 1))))
     ax.set_ylabel("ResNet layer")
     ax.set_xticks(np.arange(n_cols))
     ax.set_xticklabels(all_ann_keys, rotation=90, fontsize=5)
@@ -414,16 +423,16 @@ def main():
         cross = info["corr"]  # (n_resnet_layers, n_area_timesteps)
         a_ts = info["ann_timesteps"]
 
-        fig, ax = plt.subplots(figsize=(8, 4))
+        fig, ax = plt.subplots(figsize=(10, 5))
         for j, rn_layer in enumerate(resnet_labels):
-            color = RESNET_COLORS.get(rn_layer, None)
-            ax.plot(a_ts, cross[j, :], label=rn_layer, alpha=0.8,
-                    linewidth=1.5, color=color)
+            color = get_layer_color(rn_layer)
+            ax.plot(a_ts, cross[j, :], label=rn_layer, alpha=0.7,
+                    linewidth=1.2, color=color)
 
         ax.set_xlabel("BLT-VS timestep")
         ax.set_ylabel("Correlation")
         ax.set_title(f"{area} – ResNet layers vs BLT-VS timesteps – {model_name}")
-        ax.legend(fontsize=8, loc="best")
+        ax.legend(fontsize=5, ncol=max(1, len(resnet_labels) // 8), loc="best")
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
 
@@ -437,22 +446,26 @@ def main():
     # For each ResNet layer, take best BLT-VS timestep within each area
     # ---------------------------------------------------------
     if available_areas:
-        fig, ax = plt.subplots(figsize=(8, 5))
+        n_layers = len(resnet_labels)
+        fig_w = max(10, n_layers * 0.4)
 
-        x_pos = np.arange(len(resnet_labels))
+        fig, ax = plt.subplots(figsize=(fig_w, 5))
+
+        x_pos = np.arange(n_layers)
         bar_width = 0.8 / max(len(available_areas), 1)
 
         for i, area in enumerate(available_areas):
             info = area_corr_data[area]
             cross = info["corr"]
-            best_corr = np.max(cross, axis=1)  # best BLT-VS timestep per ResNet layer
+            best_corr = np.max(cross, axis=1)
 
             color = AREA_COLORS.get(area, None)
             ax.bar(x_pos + i * bar_width, best_corr, bar_width,
                    label=area, color=color, alpha=0.85)
 
         ax.set_xticks(x_pos + bar_width * len(available_areas) / 2)
-        ax.set_xticklabels(resnet_labels, fontsize=9)
+        ax.set_xticklabels(resnet_labels, fontsize=max(5, min(8, 200 // max(n_layers, 1))),
+                           rotation=90)
         ax.set_xlabel("ResNet layer")
         ax.set_ylabel("Best correlation with BLT-VS")
         ax.set_title(f"Best BLT-VS match per area – {model_name}")
@@ -468,20 +481,24 @@ def main():
     # ---------------------------------------------------------
     # Plot 5: Overall best correlation per ResNet layer
     # ---------------------------------------------------------
-    fig, ax = plt.subplots(figsize=(8, 4))
+    n_layers = len(resnet_labels)
+    fig_w = max(10, n_layers * 0.4)
+    fig, ax = plt.subplots(figsize=(fig_w, 4))
     best_overall = np.max(full_corr, axis=1)
     best_labels = [all_ann_keys[j] for j in np.argmax(full_corr, axis=1)]
 
-    bars = ax.bar(resnet_labels, best_overall, color="#2ca02c", alpha=0.85)
+    bar_colors = [get_layer_color(l) for l in resnet_labels]
+    bars = ax.bar(resnet_labels, best_overall, color=bar_colors, alpha=0.85)
     ax.set_xlabel("ResNet layer")
     ax.set_ylabel("Best correlation with any BLT-VS RDM")
     ax.set_title(f"Best overall {resnet_variant} vs BLT-VS – {model_name}")
     ax.grid(True, alpha=0.3, axis="y")
+    plt.xticks(rotation=90, fontsize=max(5, min(8, 200 // max(n_layers, 1))))
 
     # Annotate bars with the best-matching BLT-VS label
     for bar, label in zip(bars, best_labels):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.005,
-                label, ha="center", va="bottom", fontsize=7, rotation=45)
+                label, ha="center", va="bottom", fontsize=5, rotation=45)
 
     plt.tight_layout()
     overall_path = path.join(out_dir, "summary_best_overall_corr.png")

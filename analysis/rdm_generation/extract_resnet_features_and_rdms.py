@@ -2,8 +2,9 @@
 Extract features from a pretrained torchvision ResNet and compute RDMs.
 
 Uses the same THINGS Drift stimulus set as the BLT-VS pipeline.
-For each ResNet layer, features are globally average-pooled and an RDM is
-computed (cosine distance, optionally ranked).
+Hooks are registered on every conv layer inside each residual block,
+giving fine-grained hierarchical representations (e.g. layer1.0.conv1,
+layer1.0.conv2, layer1.0.conv3, layer1.1.conv1, ...).
 
 Output: .npz compatible with second_order_rdms_ann_vs_resnet.py
 
@@ -30,20 +31,6 @@ from PIL import Image
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import rankdata
 from tqdm import tqdm
-
-# ============================================================
-# ResNet layers we extract from (roughly hierarchical)
-# ============================================================
-RESNET_LAYERS = ["conv1", "layer1", "layer2", "layer3", "layer4", "avgpool"]
-
-LAYER_DISPLAY = {
-    "conv1":   "Conv1",
-    "layer1":  "Layer1",
-    "layer2":  "Layer2",
-    "layer3":  "Layer3",
-    "layer4":  "Layer4",
-    "avgpool": "AvgPool",
-}
 
 
 # ============================================================
@@ -135,7 +122,20 @@ def main():
     model.eval()
 
     # --------------------------------------------------------
-    # Register hooks to capture intermediate activations
+    # Discover all sub-layers and register hooks
+    #
+    # BLT-VS extracts activations AFTER conv → ReLU → GroupNorm,
+    # i.e. fully processed outputs.  To match this, we hook:
+    #   - bn1/bn2 inside each block (after conv+BN, right before ReLU)
+    #     → ReLU is applied inplace so bn output == post-ReLU value
+    #   - The whole Bottleneck/BasicBlock module for the final sublayer
+    #     (because conv3→bn3 is followed by residual addition + ReLU,
+    #      which only happens in the block's forward, not in bn3)
+    #
+    # This gives e.g. for a Bottleneck block:
+    #   layer1.0.bn1  (= after conv1+bn1, before relu — but relu is inplace)
+    #   layer1.0.bn2  (= after conv2+bn2, before relu — but relu is inplace)
+    #   layer1.0      (= after conv3+bn3+residual+relu — full block output)
     # --------------------------------------------------------
     activations = {}
 
@@ -145,12 +145,40 @@ def main():
         return hook_fn
 
     hook_handles = []
-    hook_handles.append(model.conv1.register_forward_hook(make_hook("conv1")))
-    hook_handles.append(model.layer1.register_forward_hook(make_hook("layer1")))
-    hook_handles.append(model.layer2.register_forward_hook(make_hook("layer2")))
-    hook_handles.append(model.layer3.register_forward_hook(make_hook("layer3")))
-    hook_handles.append(model.layer4.register_forward_hook(make_hook("layer4")))
+    layer_names = []
+
+    # 1) conv1 (stem) — hook on bn1 (after conv1+bn1; relu is applied inplace)
+    hook_handles.append(model.bn1.register_forward_hook(make_hook("conv1_bn")))
+    layer_names.append("conv1_bn")
+
+    # 2) Inside each residual block
+    for stage_name in ["layer1", "layer2", "layer3", "layer4"]:
+        stage = getattr(model, stage_name)
+        for block_idx, block in enumerate(stage):
+            # Bottleneck (ResNet50/101/152): conv1→bn1→relu, conv2→bn2→relu, conv3→bn3→(+residual)→relu
+            # BasicBlock (ResNet18/34):      conv1→bn1→relu, conv2→bn2→(+residual)→relu
+
+            # Intermediate sublayers: hook on bn (post-conv+BN, pre-relu but relu is inplace)
+            intermediate_bns = ["bn1", "bn2"]  # always present
+            for bn_name in intermediate_bns:
+                if hasattr(block, bn_name):
+                    full_name = f"{stage_name}.{block_idx}.{bn_name}"
+                    bn_module = getattr(block, bn_name)
+                    hook_handles.append(bn_module.register_forward_hook(make_hook(full_name)))
+                    layer_names.append(full_name)
+
+            # Final sublayer: hook on the whole block (after residual add + relu)
+            block_name = f"{stage_name}.{block_idx}"
+            hook_handles.append(block.register_forward_hook(make_hook(block_name)))
+            layer_names.append(block_name)
+
+    # 3) avgpool
     hook_handles.append(model.avgpool.register_forward_hook(make_hook("avgpool")))
+    layer_names.append("avgpool")
+
+    print(f"\nRegistered hooks on {len(layer_names)} layers:")
+    for ln in layer_names:
+        print(f"  {ln}")
 
     # --------------------------------------------------------
     # ImageNet normalization (standard for torchvision models)
@@ -173,7 +201,7 @@ def main():
     # --------------------------------------------------------
     # Extract features
     # --------------------------------------------------------
-    features = {layer: [] for layer in RESNET_LAYERS}
+    features = {layer: [] for layer in layer_names}
     all_indices = []
 
     print("\nExtracting features ...")
@@ -185,7 +213,7 @@ def main():
             activations.clear()
             _ = model(imgs)
 
-            for layer in RESNET_LAYERS:
+            for layer in layer_names:
                 act = activations[layer]
                 # Global average pooling for conv/residual layers
                 if act.dim() == 4:
@@ -200,7 +228,7 @@ def main():
 
     # Concatenate
     all_indices = np.array(all_indices)
-    for layer in RESNET_LAYERS:
+    for layer in layer_names:
         features[layer] = np.concatenate(features[layer], axis=0)
         print(f"  {layer}: {features[layer].shape}")
 
@@ -212,10 +240,10 @@ def main():
         "indices": all_indices.astype(np.int32),
         "distance_metric": np.array(args.metric),
         "resnet_variant": np.array(args.resnet_variant),
-        "layers": np.array(RESNET_LAYERS),
+        "layers": np.array(layer_names),
     }
 
-    for layer in RESNET_LAYERS:
+    for layer in layer_names:
         feat = features[layer]
 
         # Restore original stimulus ordering

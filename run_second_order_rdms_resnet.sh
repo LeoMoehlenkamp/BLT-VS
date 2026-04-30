@@ -83,6 +83,7 @@ python analysis/rdm_generation/second_order_rdms_ann_vs_resnet.py \
     --save_dir "$SAVE_DIR" \
     --metric "$METRIC" \
     --rdm_type "$RDM_TYPE" \
+    --second_order_metric spearman \
     --plot_panels 1
 
 echo "====================================="

@@ -31,7 +31,7 @@ ANN_RDM_DIR="analysis_outputs/ann_rdms"
 # Derived paths
 RESNET_RDM_DIR="analysis_outputs/resnet_rdms"
 RESNET_RDM_PATH="${RESNET_RDM_DIR}/${RESNET_VARIANT}_rdms.npz"
-ANN_RDM_PATH="${ANN_RDM_DIR}/${MODEL_NAME}_ann_rdms.npz"
+ANN_RDM_PATH="${ANN_RDM_DIR}/${MODEL_NAME}_${METRIC}_${RDM_TYPE}/${MODEL_NAME}_ann_rdms.npz"
 SAVE_DIR="analysis_outputs/second_order_ann_vs_resnet"
 
 # --- Environment setup ---

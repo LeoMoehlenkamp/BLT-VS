@@ -66,13 +66,23 @@ class Ecoset(torch.utils.data.Dataset):
             with h5py.File(dataset_path, "r") as f:
                 self.images = torch.from_numpy(f[split]['data'][()]).permute((0, 3, 1, 2)) # to match the CHW expectation of pytorch
                 self.labels = torch.from_numpy(f[split]['labels'][()].astype(np.int64))
+            self._len = len(self.labels)
         else:
-            self.split_data = h5py.File(dataset_path, "r")[split]
-            self.images = self.split_data['data']
-            self.labels = self.split_data['labels']
+            # Only read the length here; actual data is read lazily per-worker
+            with h5py.File(dataset_path, "r") as f:
+                self._len = len(f[split]['labels'])
+            self._h5_file = None
+            self.images = None
+            self.labels = None
+
+    def _open_h5(self):
+        """Lazily open the HDF5 file in the current worker process."""
+        self._h5_file = h5py.File(self.root_dir, "r")
+        self.images = self._h5_file[self.split]['data']
+        self.labels = self._h5_file[self.split]['labels']
 
     def __len__(self):
-        return len(self.labels)
+        return self._len
 
     def __getitem__(self, idx): # accepts ids and returns the images and labels transformed to the Dataloader
         if torch.is_tensor(idx):
@@ -82,9 +92,10 @@ class Ecoset(torch.utils.data.Dataset):
             imgs = self.images[idx]
             labels = self.labels[idx]
         else:
-            with h5py.File(self.root_dir, "r") as f:
-                imgs = torch.from_numpy(np.asarray(self.images[idx])).permute((2,0,1))    
-                labels = torch.from_numpy(np.asarray(self.labels[idx].astype(np.int64)))
+            if self.images is None:
+                self._open_h5()
+            imgs = torch.from_numpy(np.asarray(self.images[idx])).permute((2,0,1))    
+            labels = torch.from_numpy(np.asarray(self.labels[idx].astype(np.int64)))
 
         if self.transform:
             imgs = self.transform(imgs)
@@ -359,7 +370,9 @@ def get_Dataset_loaders(hyp, splits):
             batch_size=hyp['optimizer']['batch_size'],
             shuffle=True,
             num_workers=hyp['optimizer']['dataloader']['num_workers_train'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train']
+            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train'],
+            pin_memory=True,
+            persistent_workers=True
         )
     else:
         train_loader = None
@@ -369,7 +382,9 @@ def get_Dataset_loaders(hyp, splits):
             val_data,
             batch_size=hyp['misc']['batch_size_val_test'],
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test']
+            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
+            pin_memory=True,
+            persistent_workers=True
         )
     else:
         val_loader = None
@@ -379,7 +394,9 @@ def get_Dataset_loaders(hyp, splits):
             test_data,
             batch_size=hyp['misc']['batch_size_val_test'],
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test']
+            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
+            pin_memory=True,
+            persistent_workers=True
         )
     else:
         test_loader = None

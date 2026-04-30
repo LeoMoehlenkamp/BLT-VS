@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 #SBATCH -c 16
 #SBATCH --mem=64G
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
 #SBATCH --output=logs/%x_%j.out

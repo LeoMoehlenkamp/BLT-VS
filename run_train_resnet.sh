@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=klab-gpu
-#SBATCH -w klab-1
+#SBATCH -w klab-8
 #SBATCH --nodes=1
-#SBATCH -c 12
-#SBATCH --mem=16G
+#SBATCH -c 16
+#SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 #SBATCH --time=24:00:00
 #SBATCH --job-name=resnet50_train
@@ -18,9 +18,9 @@
 DATASET="miniecoset"          # ecoset | miniecoset | imagenet
 DATASET_MODE=0                # 0 = EcoSet, 1 = FakeData, 2 = CIFAR100
 EPOCHS=60
-BATCH_SIZE=64
+BATCH_SIZE=256
 LR=7.5e-4
-NUM_WORKERS=4
+NUM_WORKERS=8
 RUN_NAME="resnet50__miniecoset"   # leave empty for auto-generated name
 
 # --- Environment setup ---

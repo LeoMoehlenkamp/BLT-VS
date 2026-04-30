@@ -71,7 +71,6 @@ plt.annotate(
 
 plt.xlabel("Epoch")
 plt.ylabel("Accuracy (%)")
-plt.title(f"Accuracy Curve — {run_name}\n({n_epochs} epochs logged, configured for 40/run)")
 plt.gca().xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
 plt.grid(alpha=0.3)
 plt.legend()

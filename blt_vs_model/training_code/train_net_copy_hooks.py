@@ -635,152 +635,156 @@ if __name__ == '__main__':
 
     # ============================
     # Streaming PCA via covariance accumulation
+    # (only for models that support extract_actvs, e.g. BLT_VS)
     # ============================
 
-    print("\nExtracting PCA statistics (streaming, no activation saving)...")
-    _, val_loader, _, hyp = get_Dataset_loaders(hyp, ['val'])
-    print("Validation batches for PCA:", len(val_loader))
+    if network_name != 'blt_vs':
+        print(f"\nSkipping PCA extraction (not supported for network '{network_name}').")
+    else:
+        print("\nExtracting PCA statistics (streaming, no activation saving)...")
+        _, val_loader, _, hyp = get_Dataset_loaders(hyp, ['val'])
+        print("Validation batches for PCA:", len(val_loader))
 
-    areas_to_extract = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
-    timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
+        areas_to_extract = ["Retina", "LGN", "V1", "V2", "V3", "V4", "LOC"]
+        timesteps_to_extract = list(range(hyp["network"]["timesteps"]))
 
-    cov_mats = {}
-    sum_vecs = {}
-    counts = {}
+        cov_mats = {}
+        sum_vecs = {}
+        counts = {}
 
-    extract_batches = 0
-    max_extract_batches = 50   # increase later if you want more stable PCA
+        extract_batches = 0
+        max_extract_batches = 50   # increase later if you want more stable PCA
 
-    model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
-    model_for_extract.eval()
+        model_for_extract = net.module if isinstance(net, nn.DataParallel) else net
+        model_for_extract.eval()
 
-    #Setup for unexpected values in layers
-    first_signal = compute_first_signal(hyp["network"]["bottlenecks"], hyp["network"]["skip_connections"])
-    print(f"Computed first_signal based on connections: {first_signal}")
-    
-    threshold = 1e-8
+        #Setup for unexpected values in layers
+        first_signal = compute_first_signal(hyp["network"]["bottlenecks"], hyp["network"]["skip_connections"])
+        print(f"Computed first_signal based on connections: {first_signal}")
+        
+        threshold = 1e-8
 
-    with torch.no_grad():
-        for images, labels in val_loader:
+        with torch.no_grad():
+            for images, labels in val_loader:
 
-            imgs = images.to(hyp['optimizer']['device'])
+                imgs = images.to(hyp['optimizer']['device'])
 
-            outputs, activations = model_for_extract(
-                imgs,
-                extract_actvs=True,
-                areas=areas_to_extract,
-                timesteps=timesteps_to_extract
-            ) 
+                outputs, activations = model_for_extract(
+                    imgs,
+                    extract_actvs=True,
+                    areas=areas_to_extract,
+                    timesteps=timesteps_to_extract
+                ) 
 
-            for area in activations:
-                for t in activations[area]:
+                for area in activations:
+                    for t in activations[area]:
 
-                    act = activations[area][t]
+                        act = activations[area][t]
 
-                    if act is None:
-                        continue
+                        if act is None:
+                            continue
 
-                    if isinstance(act, dict):
-                        act = next(iter(act.values()))
+                        if isinstance(act, dict):
+                            act = next(iter(act.values()))
 
-                    # check activations before signal arrival
-                    if area in first_signal and t < first_signal[area]:
+                        # check activations before signal arrival
+                        if area in first_signal and t < first_signal[area]:
 
-                        max_val = act.abs().max().item()
-                        mean_val = act.abs().mean().item()
+                            max_val = act.abs().max().item()
+                            mean_val = act.abs().mean().item()
 
-                        if extract_batches == 0:
-                            print(f"{area} t{t}: max={max_val:.2e}, mean={mean_val:.2e}")
+                            if extract_batches == 0:
+                                print(f"{area} t{t}: max={max_val:.2e}, mean={mean_val:.2e}")
 
-                        if max_val > threshold:
-                            print(f"⚠ Unexpected large activation at {area} t{t}")
+                            if max_val > threshold:
+                                print(f"⚠ Unexpected large activation at {area} t{t}")
 
-                        continue
+                            continue
 
-                    key = f"{area}_t{t}"
+                        key = f"{area}_t{t}"
 
-                    # Optional spatial subsampling to reduce compute
-                    act = act[:, :, ::2, ::2]
+                        # Optional spatial subsampling to reduce compute
+                        act = act[:, :, ::2, ::2]
 
-                    B, C, H, W = act.shape
+                        B, C, H, W = act.shape
 
-                    # reshape to (N, C), where N = B * H * W
-                    X = act.permute(0, 2, 3, 1).reshape(-1, C)
+                        # reshape to (N, C), where N = B * H * W
+                        X = act.permute(0, 2, 3, 1).reshape(-1, C)
 
-                    # use float32 for stable covariance accumulation
-                    X = X.detach().float()
+                        # use float32 for stable covariance accumulation
+                        X = X.detach().float()
 
-                    if key not in cov_mats:
-                        cov_mats[key] = torch.zeros(C, C, device=X.device, dtype=torch.float32)
-                        sum_vecs[key] = torch.zeros(C, device=X.device, dtype=torch.float32)
-                        counts[key] = 0
+                        if key not in cov_mats:
+                            cov_mats[key] = torch.zeros(C, C, device=X.device, dtype=torch.float32)
+                            sum_vecs[key] = torch.zeros(C, device=X.device, dtype=torch.float32)
+                            counts[key] = 0
 
-                    cov_mats[key] += X.T @ X
-                    sum_vecs[key] += X.sum(dim=0)
-                    counts[key] += X.shape[0]
+                        cov_mats[key] += X.T @ X
+                        sum_vecs[key] += X.sum(dim=0)
+                        counts[key] += X.shape[0]
 
-            extract_batches += 1
-            if extract_batches >= max_extract_batches:
-                break
+                extract_batches += 1
+                if extract_batches >= max_extract_batches:
+                    break
 
-    print("Finished accumulating covariance matrices.")
+        print("Finished accumulating covariance matrices.")
 
-    # ============================
-    # Compute PCA results
-    # ============================
+        # ============================
+        # Compute PCA results
+        # ============================
 
-    pca_results = {}
+        pca_results = {}
 
-    for key in cov_mats:
+        for key in cov_mats:
 
-        n = counts[key]
+            n = counts[key]
 
-        mean = sum_vecs[key] / n
+            mean = sum_vecs[key] / n
 
-        cov = (cov_mats[key] / n) - torch.outer(mean, mean)
+            cov = (cov_mats[key] / n) - torch.outer(mean, mean)
 
-        cov = cov.cpu().numpy()
+            cov = cov.cpu().numpy()
 
-        eigvals, eigvecs = np.linalg.eigh(cov)
+            eigvals, eigvecs = np.linalg.eigh(cov)
 
-        # sort descending
-        eigvals = eigvals[::-1]
-        eigvecs = eigvecs[:, ::-1]
+            # sort descending
+            eigvals = eigvals[::-1]
+            eigvecs = eigvecs[:, ::-1]
 
-        # numerical safety
-        eigvals = np.clip(eigvals, a_min=0.0, a_max=None)
+            # numerical safety
+            eigvals = np.clip(eigvals, a_min=0.0, a_max=None)
 
-        total_var = eigvals.sum()
-        if total_var <= 0:
-            explained = np.zeros_like(eigvals)
-        else:
-            explained = eigvals / total_var
+            total_var = eigvals.sum()
+            if total_var <= 0:
+                explained = np.zeros_like(eigvals)
+            else:
+                explained = eigvals / total_var
 
-        cumulative = np.cumsum(explained)
+            cumulative = np.cumsum(explained)
 
-        channels_90 = int(np.searchsorted(cumulative, 0.90) + 1)
-        channels_95 = int(np.searchsorted(cumulative, 0.95) + 1)
-        channels_99 = int(np.searchsorted(cumulative, 0.99) + 1)
+            channels_90 = int(np.searchsorted(cumulative, 0.90) + 1)
+            channels_95 = int(np.searchsorted(cumulative, 0.95) + 1)
+            channels_99 = int(np.searchsorted(cumulative, 0.99) + 1)
 
-        pca_results[f"{key}_eigvals"] = eigvals
-        pca_results[f"{key}_explained"] = explained
-        pca_results[f"{key}_cumulative"] = cumulative
-        pca_results[f"{key}_channels_90"] = np.array([channels_90])
-        pca_results[f"{key}_channels_95"] = np.array([channels_95])
-        pca_results[f"{key}_channels_99"] = np.array([channels_99])
+            pca_results[f"{key}_eigvals"] = eigvals
+            pca_results[f"{key}_explained"] = explained
+            pca_results[f"{key}_cumulative"] = cumulative
+            pca_results[f"{key}_channels_90"] = np.array([channels_90])
+            pca_results[f"{key}_channels_95"] = np.array([channels_95])
+            pca_results[f"{key}_channels_99"] = np.array([channels_99])
 
-        print(
-            f"{key}: "
-            f"90%={channels_90}, "
-            f"95%={channels_95}, "
-            f"99%={channels_99}, "
-            f"total_channels={len(eigvals)}"
-        )
+            print(
+                f"{key}: "
+                f"90%={channels_90}, "
+                f"95%={channels_95}, "
+                f"99%={channels_99}, "
+                f"total_channels={len(eigvals)}"
+            )
 
-    pca_path = log_path + "/pca_results_streaming.npz"
-    np.savez(pca_path, **pca_results)
+        pca_path = log_path + "/pca_results_streaming.npz"
+        np.savez(pca_path, **pca_results)
 
-    print("Saved PCA results to:", pca_path)
+        print("Saved PCA results to:", pca_path)
     
     if hyp["dataset_mode"] != 1:
 

@@ -30,12 +30,12 @@ SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__2026031
 # These will replace the corresponding values from args.json.
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
-OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnall64_BU-TD-Skip"
+OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
 OVERRIDE_BATCH_SIZE="512"
 OVERRIDE_BATCH_SIZE_VAL_TEST="512"
 OVERRIDE_N_EPOCHS="40"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
-OVERRIDE_NUM_WORKERS="12"
+OVERRIDE_NUM_WORKERS="16"
 
 # --- Environment setup ---
 spack load miniconda3

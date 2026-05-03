@@ -3,7 +3,7 @@
 #SBATCH -w klab-8
 #SBATCH --nodes=1
 #SBATCH -c 16
-#SBATCH --mem=64G
+#SBATCH --mem=128G
 #SBATCH --gres=gpu:2
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset

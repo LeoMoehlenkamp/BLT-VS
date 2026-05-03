@@ -1077,6 +1077,7 @@ if __name__ == '__main__':
         # PCA DIMENSIONALITY PLOTS
         # ============================
 
+        pca_path = log_path + "/pca_results_streaming.npz"
         if os.path.exists(pca_path):
 
             import matplotlib.pyplot as plt

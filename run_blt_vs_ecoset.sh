@@ -5,7 +5,7 @@
 #SBATCH -c 16
 #SBATCH --mem=128G
 #SBATCH --gres=gpu:2
-#SBATCH --time=96:00:00
+#SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -33,7 +33,7 @@ OVERRIDE_DATASET="ecoset"
 OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
 OVERRIDE_BATCH_SIZE="256"
 OVERRIDE_BATCH_SIZE_VAL_TEST="256"
-OVERRIDE_N_EPOCHS="40"
+OVERRIDE_N_EPOCHS="20"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
 OVERRIDE_NUM_WORKERS="16"
 

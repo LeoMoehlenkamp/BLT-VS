@@ -502,11 +502,11 @@ if __name__ == '__main__':
                 "acc": f"{current_acc:.2f}%"
             })
 
-            # GPU utilization logging every 500 steps
-            if (step_idx + 1) % 500 == 0:
+            # GPU utilization logging once per epoch (at step 10)
+            if (step_idx + 1) == 10:
                 for gpu_i in range(torch.cuda.device_count()):
                     mem_used = torch.cuda.memory_reserved(gpu_i) / (1024**3)
-                    mem_total = torch.cuda.get_device_properties(gpu_i).total_mem / (1024**3)
+                    mem_total = torch.cuda.get_device_properties(gpu_i).total_memory / (1024**3)
                     print(f"  [Step {step_idx+1}] GPU {gpu_i}: {mem_used:.1f}/{mem_total:.1f} GB reserved")
 
             if epoch_running_init_flag == 0:

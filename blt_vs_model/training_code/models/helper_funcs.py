@@ -163,9 +163,12 @@ def get_optimizer(hyp,net):
 
     # Get the parameters that will be updated (those with requires_grad=True) - this is set up so later you could freeze some layers if needed
     trainable_params = list(filter(lambda p: p.requires_grad, net.parameters()))
+    weight_decay = hyp['optimizer'].get('weight_decay', 0.0)
 
     if hyp['optimizer']['type'] == 'adam':
-        return optim.Adam(trainable_params,lr=1.)
+        if weight_decay > 0:
+            return optim.AdamW(trainable_params, lr=1., weight_decay=weight_decay)
+        return optim.Adam(trainable_params, lr=1.)
 
 def adaptive_gradient_clipping(model, clip_factor=0.1, eps=1e-3):
     # Adaptive gradient clipping from https://proceedings.mlr.press/v139/brock21a.html

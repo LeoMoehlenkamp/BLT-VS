@@ -104,6 +104,9 @@ parser.add_argument('--num_workers', type=int, default=2)
 parser.add_argument('--max_steps', type=int, default=-1)
 parser.add_argument('--bottlenecks', type=str, default='', help='comma list like "V1->V2:144,V2->V3:160"')
 parser.add_argument('--grad_clipping', type=int, default=1)
+parser.add_argument('--weight_decay', type=float, default=0.0)
+parser.add_argument('--lr_patience', type=int, default=2)
+parser.add_argument('--grad_accum_steps', type=int, default=1, help='Number of mini-batches to accumulate before optimizer step')
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
 parser.add_argument('--name', type=str, default='', help='Optional custom name for the run. Overrides the auto-generated name.')
@@ -163,6 +166,7 @@ hyp = {
                'warmup_epochs': 5 if args.start_from_epoch==0 else 2, # lr starts at base_lr/(lr scale factor) and scales up linearly for these many epochs
                'lr_scale_factor': 100 if args.start_from_epoch==0 else 1.5, # factor by which to scale the learning rate
                },
+        'weight_decay': args.weight_decay,
         'batch_size': args.batch_size,
         'n_epochs': args.n_epochs, # number of epochs (full cycle through the dataset)
         'device': 'cuda', # device to train the network on
@@ -388,7 +392,7 @@ if __name__ == '__main__':
     scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
 
     # LR scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, threshold=1e-2, verbose=True) # usual scheduler
-    lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=2) # 1% change necessary in 5 epochs, for 2 epochs straight, else drop lr by 1/5
+    lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=args.lr_patience)
     
     # Warm-up scheduler - this already initialises the lr to base_lr/lr_scale_factor - has an internal counter which it uses to do its updates when .step() is called!
     warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch_h: ((hyp['optimizer']['lr']['base_lr'] - hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor']) / (hyp['optimizer']['lr']['warmup_epochs']-1)) * epoch_h + hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor'])
@@ -456,7 +460,9 @@ if __name__ == '__main__':
             dynamic_ncols=True,
             file= sys.stdout
         )
-        for images, labels in pbar:
+        accum_steps = args.grad_accum_steps
+        optimizer.zero_grad()
+        for step_idx, (images, labels) in enumerate(pbar):
 
             imgs = images.to(hyp['optimizer']['device'])
             lbls = labels.to(hyp['optimizer']['device'])
@@ -464,8 +470,6 @@ if __name__ == '__main__':
             if criterion.weight is not None:
                 criterion.weight = criterion.weight.to(imgs.device)
 
-            optimizer.zero_grad()
-            
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=hyp['misc']['use_amp']):
                 outputs = net(imgs)
                 if epoch == 1 and epoch_running_init_flag == 0:
@@ -476,23 +480,25 @@ if __name__ == '__main__':
                     for t in range(len(outputs)-1):
                         loss = loss + criterion(outputs[t+1], lbls.long())
                 loss = loss/len(outputs)
+                loss = loss / accum_steps  # scale loss for accumulation
             
             scaler.scale(loss).backward()
-            if args.grad_clipping:
-                # Clipping gradients
-                scaler.unscale_(optimizer)  # Unscale gradients before clipping
-                adaptive_gradient_clipping(net, clip_factor=0.1)
-            scaler.step(optimizer)
-            scaler.update()
 
-            train_loss_running += loss.item()
-            # train_loss_running = train_loss_running
+            if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
+                if args.grad_clipping:
+                    scaler.unscale_(optimizer)
+                    adaptive_gradient_clipping(net, clip_factor=0.1)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+
+            train_loss_running += loss.item() * accum_steps  # undo scaling for logging
             train_acc_running += np.mean(compute_accuracy(outputs,lbls))
 
             current_acc = np.mean(compute_accuracy(outputs, lbls))
 
             pbar.set_postfix({
-                "loss": f"{loss.item():.3f}",
+                "loss": f"{loss.item() * accum_steps:.3f}",
                 "acc": f"{current_acc:.2f}%"
             })
 

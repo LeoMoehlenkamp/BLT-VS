@@ -5,7 +5,7 @@
 #SBATCH -c 16
 #SBATCH --mem=128G
 #SBATCH --gres=gpu:2
-#SBATCH --time=48:00:00
+#SBATCH --time=96:00:00
 #SBATCH --job-name=blt_ecoset
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -31,8 +31,8 @@ SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__2026031
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
 OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
-OVERRIDE_BATCH_SIZE="64"
-OVERRIDE_BATCH_SIZE_VAL_TEST="64"
+OVERRIDE_BATCH_SIZE="256"
+OVERRIDE_BATCH_SIZE_VAL_TEST="256"
 OVERRIDE_N_EPOCHS="40"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
 OVERRIDE_NUM_WORKERS="16"
@@ -132,7 +132,7 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --learning_rate "$LR" \
     --num_workers "$NUM_WORKERS" \
     --grad_clipping "$SRC_GRAD_CLIP" \
-    --grad_accum_steps 8
+    --grad_accum_steps 2
 
 echo "====================================="
 echo "Finished: $(date)"

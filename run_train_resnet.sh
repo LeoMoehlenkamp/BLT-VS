@@ -20,7 +20,7 @@ DATASET_MODE=0                # 0 = EcoSet, 1 = FakeData, 2 = CIFAR100
 EPOCHS=100
 BATCH_SIZE=256
 LR=3e-3
-WEIGHT_DECAY=5e-4
+WEIGHT_DECAY=1e-2
 NUM_WORKERS=8
 RUN_NAME="resnet50__miniecoset"   # leave empty for auto-generated name
 

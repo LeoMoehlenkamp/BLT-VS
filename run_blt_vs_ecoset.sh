@@ -3,7 +3,7 @@
 #SBATCH -w klab-7
 #SBATCH --nodes=1
 #SBATCH -c 16
-#SBATCH --mem=128G
+#SBATCH --mem=256G
 #SBATCH --gres=gpu:2
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
@@ -35,7 +35,7 @@ OVERRIDE_BATCH_SIZE="512"
 OVERRIDE_BATCH_SIZE_VAL_TEST="512"
 OVERRIDE_N_EPOCHS="20"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
-OVERRIDE_NUM_WORKERS="16"
+OVERRIDE_NUM_WORKERS="8"
 
 # --- Environment setup ---
 spack load miniconda3

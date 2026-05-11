@@ -1,16 +1,20 @@
 """
 Rectangular second-order RDM analysis: Monkey neural RDMs vs. ResNet layer RDMs.
 
-Identical logic to second_order_rdms_ann_vs_monkey.py, but using ResNet layers
-instead of BLT-VS areas+timesteps:
-  - rows    = monkey timepoints
-  - columns = ResNet layers (conv1_bn, layer1.0.bn1, ..., avgpool)
+Two modes:
+  --resnet_rdm_pkl  : Load ResNet RDMs from TIMM .pkl (PCA-reduced, matches notebook)
+  --resnet_rdm_npz  : Load ResNet RDMs from your own extraction .npz
+
+If both are given, --resnet_rdm_pkl takes priority.
 
 Usage:
+  # Mode 1: match notebook exactly (TIMM pkl)
   python second_order_rdms_resnet_vs_monkey.py \
-      --resnet_rdm_path <path_to_resnet_rdms.npz> \
-      --monkey_pkl_path <path_to_monkey.pkl> \
-      --stimulus_csv <path_to_stimulus_information.csv>
+      --resnet_rdm_pkl <path_to_resnet_rdms.pkl>
+
+  # Mode 2: test your own extraction (npz)
+  python second_order_rdms_resnet_vs_monkey.py \
+      --resnet_rdm_npz <path_to_resnet_rdms.npz> --metric cosine --rdm_type ranked
 """
 
 import os
@@ -26,12 +30,16 @@ from scipy.spatial.distance import squareform, cdist
 from scipy.stats import rankdata
 
 
-# Default paths (monkeyF, LFP, IT = rois_3, correlation distance)
+# Default paths
 DEFAULT_MONKEY_PKL = (
-    "/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_lfp_minithings/"
+    "/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_mua_minithings/"
     "monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3"
     "-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16"
-    "-baseline_0-standardize_1-metric_correlation-neural_lfp.pkl"
+    "-baseline_0-standardize_1-metric_correlation-neural_mua.pkl"
+)
+DEFAULT_RESNET_PKL = (
+    "/share/klab/danthes/danthes/THINGS_Drift/datasets/TIMM/resnet18/"
+    "rdms-resnet18-metric_cosine-normalization_None-pca_1000.pkl"
 )
 DEFAULT_STIMULUS_CSV = "/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
 
@@ -132,112 +140,92 @@ def main():
     parser = argparse.ArgumentParser(
         description="Rectangular second-order RDM: Monkey vs pretrained ResNet"
     )
-    parser.add_argument("--resnet_rdm_path", type=str, required=True,
-                        help="Path to ResNet RDMs (.npz)")
+    parser.add_argument("--resnet_rdm_pkl", type=str, default=None,
+                        help="Path to ResNet RDMs .pkl (TIMM format, matches notebook)")
+    parser.add_argument("--resnet_rdm_npz", type=str, default=None,
+                        help="Path to ResNet RDMs .npz (from your own extraction)")
+    parser.add_argument("--metric", type=str, default="cosine",
+                        help="Distance metric (only used with --resnet_rdm_npz)")
+    parser.add_argument("--rdm_type", type=str, default="ranked",
+                        choices=["raw", "ranked"],
+                        help="Raw or ranked RDMs (only used with --resnet_rdm_npz)")
     parser.add_argument("--monkey_pkl_path", type=str, default=DEFAULT_MONKEY_PKL,
                         help="Path to monkey RDM .pkl")
     parser.add_argument("--stimulus_csv", type=str, default=DEFAULT_STIMULUS_CSV,
                         help="Path to stimulus_information.csv")
     parser.add_argument("--save_dir", type=str,
                         default="analysis_outputs/second_order_resnet_vs_monkey")
-    parser.add_argument("--metric", type=str, default="cosine",
-                        help="Distance metric used in ResNet first-order RDMs")
-    parser.add_argument("--rdm_type", type=str, default="ranked",
-                        choices=["raw", "ranked"],
-                        help="Use raw or ranked first-order RDMs")
-    parser.add_argument("--t_start", type=int, default=0)
-    parser.add_argument("--t_end", type=int, default=400)
-    parser.add_argument("--t_step", type=int, default=10)
     parser.add_argument("--plot_panels", type=int, default=1)
     args = parser.parse_args()
 
+    if args.resnet_rdm_pkl is None and args.resnet_rdm_npz is None:
+        args.resnet_rdm_pkl = DEFAULT_RESNET_PKL
+        print(f"No ResNet RDM path given, using default pkl: {DEFAULT_RESNET_PKL}")
+
     os.makedirs(args.save_dir, exist_ok=True)
-    t_select = np.arange(args.t_start, args.t_end, args.t_step)
 
     # ---------------------------------------------------------
-    # Load monkey RDMs (identical to ann_vs_monkey pipeline)
+    # Load monkey RDMs — use ALL timepoints, NO rank transform
+    # (matches notebook exactly)
     # ---------------------------------------------------------
     print(f"Loading monkey RDMs: {args.monkey_pkl_path}")
     with open(args.monkey_pkl_path, "rb") as f:
         monkey_rdm_data = pickle.load(f)
 
     monkey_time = np.array(monkey_rdm_data["time"])
-    print(f"n timepoints: {len(monkey_time)}")
     monkey_rdms_raw = monkey_rdm_data["rdms"]
+    print(f"Monkey RDMs shape: {monkey_rdms_raw.shape}")
+    print(f"Monkey timepoints: {len(monkey_time)} ({monkey_time[0]} to {monkey_time[-1]} ms)")
 
-    sort_idx = get_rdm_design_sort_indices(
-        args.stimulus_csv,
-        reduce_to_column=monkey_rdm_data["data_cfg"]["labels"]
-    )
-
-    monkey_timecourse = []
-    monkey_times_used = []
-
-    for t in t_select:
-        matches = np.where(monkey_time == t)[0]
-        if len(matches) == 0:
-            continue
-        idx = matches[0]
-
-        rdm = monkey_rdms_raw[idx].astype(np.float64)
-        if args.rdm_type == "ranked":
-            rdm = rankdata(rdm)
-
-        rdm = squareform(rdm)
-        rdm = squareform(rdm)
-
-        monkey_timecourse.append(rdm)
-        monkey_times_used.append(t)
-
-    monkey_timecourse = np.array(monkey_timecourse, dtype=np.float64)
-    monkey_times_used = np.array(monkey_times_used, dtype=np.int32)
-    monkey_labels = [f"M {int(t)}ms" for t in monkey_times_used]
-
-    print(f"Monkey timecourse shape: {monkey_timecourse.shape}")
-    print(f"Monkey timepoints used:  {monkey_times_used}")
-
-    if monkey_timecourse.shape[0] == 0:
-        raise ValueError("No monkey timepoints available after selection.")
+    monkey_labels = [f"M {int(t)}ms" for t in monkey_time]
 
     # ---------------------------------------------------------
-    # Load ResNet RDMs
+    # Load ResNet RDMs — two modes: pkl (notebook) or npz (own extraction)
     # ---------------------------------------------------------
-    print(f"\nLoading ResNet RDMs: {args.resnet_rdm_path}")
-    resnet_data = np.load(args.resnet_rdm_path, allow_pickle=True)
+    model_rdm_dict = {}
+    all_resnet_keys = []
 
-    resnet_variant = str(resnet_data["resnet_variant"]) if "resnet_variant" in resnet_data else "resnet"
-    available_layers = list(resnet_data["layers"]) if "layers" in resnet_data else []
+    if args.resnet_rdm_pkl is not None:
+        # --- Mode 1: TIMM .pkl (matches notebook exactly) ---
+        print(f"\nLoading ResNet RDMs from pkl: {args.resnet_rdm_pkl}")
+        with open(args.resnet_rdm_pkl, "rb") as f:
+            model_rdm_data = pickle.load(f)
 
-    resnet_rdm_dict = {}
-    resnet_labels = []
+        all_resnet_keys = model_rdm_data["selected_nodes"]
+        model_rdm_dict = model_rdm_data["rdms"]
+        resnet_variant = path.basename(args.resnet_rdm_pkl).split("-")[1] if "-" in path.basename(args.resnet_rdm_pkl) else "resnet"
+        source_tag = "pkl"
 
-    for layer in available_layers:
-        key = f"{layer}_rdm_{args.metric}_{args.rdm_type}"
-        if key not in resnet_data:
-            print(f"  Warning: {key} not found, skipping")
-            continue
+    else:
+        # --- Mode 2: own .npz extraction ---
+        print(f"\nLoading ResNet RDMs from npz: {args.resnet_rdm_npz}")
+        resnet_data = np.load(args.resnet_rdm_npz, allow_pickle=True)
+        resnet_variant = str(resnet_data["resnet_variant"]) if "resnet_variant" in resnet_data else "resnet"
+        available_layers = list(resnet_data["layers"]) if "layers" in resnet_data else []
 
-        rdm = resnet_data[key].astype(np.float64)
-        if rdm.ndim == 2:
-            rdm_vec = squareform(rdm)
-        else:
-            rdm_vec = rdm
+        for layer in available_layers:
+            key = f"{layer}_rdm_{args.metric}_{args.rdm_type}"
+            if key not in resnet_data:
+                print(f"  Warning: {key} not found, skipping")
+                continue
+            rdm = resnet_data[key].astype(np.float64)
+            if rdm.ndim == 2:
+                rdm = squareform(rdm)
+            model_rdm_dict[layer] = rdm
+            all_resnet_keys.append(layer)
 
-        rdm_sq = squareform(rdm_vec) if rdm_vec.ndim == 1 else rdm
-        rdm_vec = squareform(rdm_sq)
+        source_tag = f"npz_{args.metric}_{args.rdm_type}"
 
-        resnet_rdm_dict[layer] = rdm_vec
-        resnet_labels.append(layer)
+    if not all_resnet_keys:
+        raise ValueError("No ResNet RDMs found.")
 
-    if not resnet_labels:
-        raise ValueError("No ResNet RDMs found. Check --metric / --rdm_type.")
-
-    print(f"ResNet layers loaded: {len(resnet_labels)}")
-    all_resnet_keys = resnet_labels
+    print(f"ResNet variant: {resnet_variant}")
+    print(f"ResNet layers loaded: {len(all_resnet_keys)}")
+    print(f"  Layers: {all_resnet_keys}")
 
     # Group layers by stage for block boundaries
     stage_groups = {}
-    for layer in resnet_labels:
+    for layer in all_resnet_keys:
         stage = get_stage(layer)
         stage_groups.setdefault(stage, []).append(layer)
 
@@ -245,7 +233,7 @@ def main():
     x_boundaries = []
     offset = 0
     stages_seen = []
-    for layer in resnet_labels:
+    for layer in all_resnet_keys:
         stage = get_stage(layer)
         if stage not in stages_seen:
             if stages_seen:
@@ -256,19 +244,20 @@ def main():
     # ---------------------------------------------------------
     # Prepare output dirs
     # ---------------------------------------------------------
-    run_tag = f"{resnet_variant}_vs_monkey__{args.metric}_{args.rdm_type}"
+    run_tag = f"{resnet_variant}_vs_monkey__{source_tag}"
     out_dir = path.join(args.save_dir, run_tag)
     npz_dir = path.join(out_dir, "npz")
     os.makedirs(out_dir, exist_ok=True)
     os.makedirs(npz_dir, exist_ok=True)
 
     # ---------------------------------------------------------
-    # Full rectangular cross-correlation: Monkey × ResNet layers
+    # Full correlation: Monkey × ResNet layers
+    # (matches notebook: 1 - cdist(rdms, model_rdm_dict, "correlation"))
     # ---------------------------------------------------------
     print("\n=== Correlating monkey timecourse with all ResNet layers ===")
     full_corr = correlate_rdm_movie_with_models(
-        monkey_timecourse,
-        resnet_rdm_dict,
+        monkey_rdms_raw,
+        model_rdm_dict,
         all_resnet_keys
     )
 
@@ -277,9 +266,7 @@ def main():
         similarity_matrix=full_corr.astype(np.float32),
         row_labels=np.array(monkey_labels),
         col_labels=np.array(all_resnet_keys),
-        monkey_times=monkey_times_used,
-        metric=np.array(args.metric),
-        rdm_type=np.array(args.rdm_type),
+        monkey_times=monkey_time,
     )
     print("  Saved npz/rectangular_monkey_vs_resnet_similarity.npz")
 
@@ -303,7 +290,7 @@ def main():
         row_labels=monkey_labels,
         col_labels=all_resnet_keys,
         save_path=path.join(out_dir, "full_monkey_vs_resnet_heatmap.png"),
-        title=f"Second-Order Similarity: Monkey vs {resnet_variant}\n({args.metric}, {args.rdm_type})",
+        title=f"Second-Order Similarity: Monkey vs {resnet_variant}",
         xlabel="ResNet layer",
         ylabel="Monkey time (ms)",
         vmin=vmin_full, vmax=vmax_full,
@@ -348,8 +335,7 @@ def main():
 
     fig.colorbar(im, ax=ax, fraction=0.02, pad=0.02, label="Correlation")
     ax.set_title(
-        f"Monkey vs {resnet_variant} + Best Layer per Stage\n"
-        f"({args.metric}, {args.rdm_type})",
+        f"Monkey vs {resnet_variant} + Best Layer per Stage",
         fontsize=11,
     )
     plt.tight_layout()
@@ -371,7 +357,7 @@ def main():
         best_corr = np.max(stage_corr, axis=1)
 
         color = STAGE_COLORS.get(stage, None)
-        ax.plot(monkey_times_used, best_corr, label=stage,
+        ax.plot(monkey_time, best_corr, label=stage,
                 linewidth=2, color=color)
         block_offset += block_size
 
@@ -391,15 +377,15 @@ def main():
     # ---------------------------------------------------------
     fig, ax = plt.subplots(figsize=(10, 5))
 
-    for j, layer in enumerate(resnet_labels):
+    for j, layer in enumerate(all_resnet_keys):
         color = get_layer_color(layer)
-        ax.plot(monkey_times_used, full_corr[:, j],
+        ax.plot(monkey_time, full_corr[:, j],
                 label=layer, alpha=0.6, linewidth=1, color=color)
 
     ax.set_xlabel("Monkey time (ms)")
     ax.set_ylabel("Correlation")
     ax.set_title(f"Monkey vs {resnet_variant} – all sublayers")
-    ax.legend(fontsize=4, ncol=max(1, len(resnet_labels) // 10), loc="best")
+    ax.legend(fontsize=4, ncol=max(1, len(all_resnet_keys) // 10), loc="best")
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.savefig(path.join(out_dir, "all_layers_correlation_curves.png"),
@@ -413,7 +399,7 @@ def main():
     fig, ax = plt.subplots(figsize=(10, 5))
     best_overall = np.max(full_corr, axis=1)
 
-    ax.plot(monkey_times_used, best_overall, linewidth=2.5)
+    ax.plot(monkey_time, best_overall, linewidth=2.5)
     ax.set_xlabel("Monkey time (ms)")
     ax.set_ylabel("Best correlation with any ResNet layer")
     ax.set_title(f"Best overall Monkey vs {resnet_variant} correlation")

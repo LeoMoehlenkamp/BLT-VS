@@ -102,6 +102,9 @@ parser.add_argument('--bottlenecks', type=str, default='', help='comma list like
 parser.add_argument('--grad_clipping', type=int, default=1)
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
+parser.add_argument('--use_mixup', type=float, default=0.0, help='MixUp alpha (0 to disable)')
+parser.add_argument('--use_cutmix', type=float, default=0.0, help='CutMix alpha (0 to disable)')
+parser.add_argument('--ra_reps', type=int, default=0, help='Repeated Augmentation repetitions (0 to disable)')
 
 args = parser.parse_args()
 
@@ -127,6 +130,10 @@ if args.network == 'vNet': # vNet takes 128px images as inputs
     print('Working with 128px inputs')
     augmenter_train = {'resize_224','crop_224','resize_128','blurring','hflip','trivialaug','normalize'}
     augemnter_val_test = {'resize_224','centercrop_224','resize_128','normalize'}
+elif args.network == 'rn50':
+    print('Working with 176px train / 224px val inputs (ImageNet V2 recipe)')
+    augmenter_train = {'randomresizedcrop_176','hflip','trivialaug','imagenet_normalize','random_erasing'}
+    augemnter_val_test = {'resize_232','centercrop_224','imagenet_normalize'}
 else: 
     # as imagenet images are not square, here we first rescale smaller axis to 224 and then crop.
     print('Working with 224px inputs')
@@ -194,6 +201,12 @@ else:
 
 hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
 hyp["ecoset_debug_size"] = args.ecoset_debug_size
+
+hyp['augmentation'] = {
+    'mixup_alpha': args.use_mixup,
+    'cutmix_alpha': args.use_cutmix,
+    'ra_reps': args.ra_reps,
+}
 # -----------------------------
 # Modular bottlenecks config
 # -----------------------------
@@ -332,6 +345,10 @@ if __name__ == '__main__':
         epoch_now = epoch+hyp['misc']['start_from_epoch']
         print('LR now: ',optimizer.param_groups[0]['lr'])
 
+        # Update RA sampler epoch for proper shuffling
+        if hasattr(train_loader.sampler, 'set_epoch'):
+            train_loader.sampler.set_epoch(epoch_now)
+
         epoch_running_init_flag = 0
 
         # Reset memory stats
@@ -349,6 +366,9 @@ if __name__ == '__main__':
 
             imgs = images.to(hyp['optimizer']['device'])
             lbls = labels.to(hyp['optimizer']['device'])
+            # For soft targets (MixUp/CutMix) keep float; for hard targets use long
+            targets = lbls if lbls.dim() == 2 else lbls.long()
+            hard_lbls = lbls.argmax(dim=1) if lbls.dim() == 2 else lbls
             # Move weights to the same device as inputs
             if criterion.weight is not None:
                 criterion.weight = criterion.weight.to(imgs.device)
@@ -359,10 +379,10 @@ if __name__ == '__main__':
                 outputs = net(imgs)
                 if epoch == 1 and epoch_running_init_flag == 0:
                     print("Labels shape:", lbls.shape)
-                loss = criterion(outputs[0], lbls.long()) 
+                loss = criterion(outputs[0], targets) 
                 if len(outputs) > 1:
                     for t in range(len(outputs)-1):
-                        loss = loss + criterion(outputs[t+1], lbls.long())
+                        loss = loss + criterion(outputs[t+1], targets)
                 loss = loss/len(outputs)
             
             scaler.scale(loss).backward()
@@ -375,9 +395,9 @@ if __name__ == '__main__':
 
             train_loss_running += loss.item()
             # train_loss_running = train_loss_running
-            train_acc_running += np.mean(compute_accuracy(outputs,lbls))
+            train_acc_running += np.mean(compute_accuracy(outputs, hard_lbls))
 
-            current_acc = np.mean(compute_accuracy(outputs, lbls))
+            current_acc = np.mean(compute_accuracy(outputs, hard_lbls))
 
             pbar.set_postfix({
                 "loss": f"{loss.item():.3f}",

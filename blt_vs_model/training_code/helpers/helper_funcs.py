@@ -364,15 +364,31 @@ def get_Dataset_loaders(hyp, splits):
     # ==========================================================
     # Create DataLoaders
     # ==========================================================
+    ra_reps = hyp.get('augmentation', {}).get('ra_reps', 0)
+    mixup_alpha = hyp.get('augmentation', {}).get('mixup_alpha', 0.0)
+    cutmix_alpha = hyp.get('augmentation', {}).get('cutmix_alpha', 0.0)
+
+    train_sampler = None
+    train_collate_fn = None
+
     if 'train' in splits:
+        if ra_reps > 0:
+            train_sampler = RepeatedAugmentationSampler(train_data, num_repeats=ra_reps)
+            print(f'Using RepeatedAugmentation sampler with {ra_reps} repeats')
+        if mixup_alpha > 0.0 or cutmix_alpha > 0.0:
+            train_collate_fn = get_mixup_cutmix_collate_fn(mixup_alpha, cutmix_alpha, hyp['dataset']['n_classes'])
+            print(f'Using MixUp(alpha={mixup_alpha}) + CutMix(alpha={cutmix_alpha})')
+
         train_loader = torch.utils.data.DataLoader(
             train_data,
             batch_size=hyp['optimizer']['batch_size'],
-            shuffle=True,
+            shuffle=(train_sampler is None),
+            sampler=train_sampler,
             num_workers=hyp['optimizer']['dataloader']['num_workers_train'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train'],
             pin_memory=True,
-            persistent_workers=True
+            persistent_workers=True,
+            collate_fn=train_collate_fn
         )
     else:
         train_loader = None
@@ -480,6 +496,10 @@ def get_transform(aug_str,hyp=None):
     # Returns a transform compose function given the transforms listed in "aug_str"
 
     transform_list = []
+    if 'randomresizedcrop_176' in aug_str:
+        transform_list.append(transforms.RandomResizedCrop(176, interpolation=transforms.InterpolationMode.BILINEAR, antialias=True))
+    if 'resize_232' in aug_str:
+        transform_list.append(transforms.Resize(232, antialias=True))
     if 'resize_224' in aug_str:
         transform_list.append(transforms.Resize(224, antialias=True))
     if 'crop_224' in aug_str:
@@ -501,9 +521,13 @@ def get_transform(aug_str,hyp=None):
         transform_list.append(transforms.ToTensor())
     else:
         transform_list.append(transforms.ConvertImageDtype(torch.float))
+    if 'imagenet_normalize' in aug_str:
+        transform_list.append(transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     if 'normalize' in aug_str:
         # transform_list.append(transforms.Lambda(lambda x: 2 * (x - x.min()) / (x.max() - x.min()) - 1))  # Scale to [-1, 1]
         transform_list.append(transforms.Lambda(lambda x: 2*x - 1))  # to_float, etc. makes images go between [0,1] - the other thing doesn't work as well!
+    if 'random_erasing' in aug_str:
+        transform_list.append(transforms.RandomErasing(p=0.1))
 
     transform = transforms.Compose(transform_list)
     
@@ -518,6 +542,53 @@ class RandomGaussianBlur(transforms.GaussianBlur):
         if random.random() < self.prob:  # apply blur if...
             return super().__call__(img)
         return img
+
+
+class RepeatedAugmentationSampler(torch.utils.data.Sampler):
+    """Sampler that repeats each sample multiple times for repeated augmentation (RA).
+    Each index appears num_repeats times per epoch, with different augmentations each time."""
+
+    def __init__(self, dataset, num_repeats=4, shuffle=True):
+        self.dataset = dataset
+        self.num_repeats = num_repeats
+        self.shuffle = shuffle
+        self.epoch = 0
+        self.num_samples = len(dataset) * num_repeats
+
+    def __iter__(self):
+        g = torch.Generator()
+        g.manual_seed(self.epoch)
+        if self.shuffle:
+            indices = torch.randperm(len(self.dataset), generator=g).tolist()
+        else:
+            indices = list(range(len(self.dataset)))
+        # Repeat each index num_repeats times
+        indices = [idx for idx in indices for _ in range(self.num_repeats)]
+        return iter(indices)
+
+    def __len__(self):
+        return self.num_samples
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
+
+
+def get_mixup_cutmix_collate_fn(mixup_alpha, cutmix_alpha, num_classes):
+    """Returns a collate_fn that applies MixUp and/or CutMix to each batch."""
+    from torchvision.transforms import v2
+
+    transforms_list = []
+    if mixup_alpha > 0.0:
+        transforms_list.append(v2.MixUp(alpha=mixup_alpha, num_classes=num_classes))
+    if cutmix_alpha > 0.0:
+        transforms_list.append(v2.CutMix(alpha=cutmix_alpha, num_classes=num_classes))
+    mixupcutmix = v2.RandomChoice(transforms_list)
+
+    def collate_fn(batch):
+        return mixupcutmix(*torch.utils.data.dataloader.default_collate(batch))
+
+    return collate_fn
+
     
 ##############################
 ## LR scheduler

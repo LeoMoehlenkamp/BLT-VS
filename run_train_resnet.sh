@@ -72,7 +72,10 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --weight_decay "$WEIGHT_DECAY" \
     --lr_patience 5 \
     --num_workers "$NUM_WORKERS" \
-    --grad_clipping 1
+    --grad_clipping 1 \
+    --use_mixup 0.2 \
+    --use_cutmix 1.0 \
+    --ra_reps 4
 
 echo "====================================="
 echo "Finished: $(date)"

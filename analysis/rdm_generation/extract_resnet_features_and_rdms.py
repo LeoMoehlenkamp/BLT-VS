@@ -157,9 +157,9 @@ def main():
                     hook_handles.append(conv_module.register_forward_hook(make_hook(full_name)))
                     layer_names.append(full_name)
 
-    # 3) avgpool
-    hook_handles.append(model.avgpool.register_forward_hook(make_hook("avgpool")))
-    layer_names.append("avgpool")
+    # 3) fc (final fully connected layer)
+    hook_handles.append(model.fc.register_forward_hook(make_hook("fc")))
+    layer_names.append("fc")
 
     print(f"\nRegistered hooks on {len(layer_names)} layers:")
     for ln in layer_names:

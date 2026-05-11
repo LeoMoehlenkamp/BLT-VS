@@ -20,7 +20,7 @@ RESNET_VARIANT="resnet18"
 
 # === Choose one mode ===
 # Mode 1: TIMM pkl (matches notebook exactly)
-MODE="pkl"
+MODE="npz"
 # Mode 2: your own extraction npz
 # MODE="npz"
 

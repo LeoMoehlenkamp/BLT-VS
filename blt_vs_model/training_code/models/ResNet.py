@@ -1,7 +1,7 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision.models.resnet import ResNet, Bottleneck
+import torch # type: ignore
+import torch.nn as nn # type: ignore
+import torch.nn.functional as F # type: ignore
+from torchvision.models.resnet import ResNet, Bottleneck # type: ignore
 
 #############################################################################################
 # Resnet modified

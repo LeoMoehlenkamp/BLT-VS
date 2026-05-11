@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # ============================================================
-# CONFIGURE HERE
+## CONFIGURE HERE
 # ============================================================
 
 # Each entry: (path_to_rdm_npz_or_dir, display_name)

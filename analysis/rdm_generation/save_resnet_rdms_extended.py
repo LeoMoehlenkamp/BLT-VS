@@ -231,7 +231,9 @@ def main():
             else:
                 im = plt.imshow(rdms[i], rasterized=True)
             plt.gca().axis("off")
-            short_title = titles[i].split(".")[-1] if "." in titles[i] else titles[i]
+            # e.g. "layer2.0.conv1" → "0.conv1"
+            parts = titles[i].split(".")
+            short_title = ".".join(parts[1:]) if len(parts) > 2 else titles[i]
             plt.title(short_title, fontsize=7)
 
         panel_path = save_base + f"_{stage}_panel.svg"
@@ -265,7 +267,7 @@ def main():
                         ax.imshow(rdms[col], interpolation="nearest", vmin=vmin, vmax=vmax)
                     else:
                         ax.imshow(rdms[col], interpolation="nearest")
-                    short = titles[col].split(".")[-1] if "." in titles[col] else titles[col]
+                    short = ".".join(titles[col].split(".")[1:]) if len(titles[col].split(".")) > 2 else titles[col]
                     ax.set_title(short, fontsize=6)
                 ax.axis("off")
 

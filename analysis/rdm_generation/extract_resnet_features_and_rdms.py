@@ -30,6 +30,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import rankdata
+from sklearn.decomposition import PCA
 from tqdm import tqdm
 
 
@@ -103,6 +104,8 @@ def main():
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--metric", type=str, default="cosine",
                         help="Distance metric for first-order RDMs")
+    parser.add_argument("--pca_components", type=int, default=1000,
+                        help="Number of PCA components (0 = no PCA)")
     parser.add_argument("--save_dir", type=str,
                         default="analysis_outputs/resnet_rdms")
     args = parser.parse_args()
@@ -124,18 +127,9 @@ def main():
     # --------------------------------------------------------
     # Discover all sub-layers and register hooks
     #
-    # BLT-VS extracts activations AFTER conv → ReLU → GroupNorm,
-    # i.e. fully processed outputs.  To match this, we hook:
-    #   - bn1/bn2 inside each block (after conv+BN, right before ReLU)
-    #     → ReLU is applied inplace so bn output == post-ReLU value
-    #   - The whole Bottleneck/BasicBlock module for the final sublayer
-    #     (because conv3→bn3 is followed by residual addition + ReLU,
-    #      which only happens in the block's forward, not in bn3)
-    #
-    # This gives e.g. for a Bottleneck block:
-    #   layer1.0.bn1  (= after conv1+bn1, before relu — but relu is inplace)
-    #   layer1.0.bn2  (= after conv2+bn2, before relu — but relu is inplace)
-    #   layer1.0      (= after conv3+bn3+residual+relu — full block output)
+    # Hook on conv layers to match the TIMM pkl format.
+    # For BasicBlock (ResNet18/34): conv1, conv2
+    # For Bottleneck (ResNet50+):   conv1, conv2, conv3
     # --------------------------------------------------------
     activations = {}
 
@@ -147,30 +141,21 @@ def main():
     hook_handles = []
     layer_names = []
 
-    # 1) conv1 (stem) — hook on bn1 (after conv1+bn1; relu is applied inplace)
-    hook_handles.append(model.bn1.register_forward_hook(make_hook("conv1_bn")))
-    layer_names.append("conv1_bn")
+    # 1) conv1 (stem)
+    hook_handles.append(model.conv1.register_forward_hook(make_hook("conv1")))
+    layer_names.append("conv1")
 
-    # 2) Inside each residual block
+    # 2) Inside each residual block — hook on conv layers
     for stage_name in ["layer1", "layer2", "layer3", "layer4"]:
         stage = getattr(model, stage_name)
         for block_idx, block in enumerate(stage):
-            # Bottleneck (ResNet50/101/152): conv1→bn1→relu, conv2→bn2→relu, conv3→bn3→(+residual)→relu
-            # BasicBlock (ResNet18/34):      conv1→bn1→relu, conv2→bn2→(+residual)→relu
-
-            # Intermediate sublayers: hook on bn (post-conv+BN, pre-relu but relu is inplace)
-            intermediate_bns = ["bn1", "bn2"]  # always present
-            for bn_name in intermediate_bns:
-                if hasattr(block, bn_name):
-                    full_name = f"{stage_name}.{block_idx}.{bn_name}"
-                    bn_module = getattr(block, bn_name)
-                    hook_handles.append(bn_module.register_forward_hook(make_hook(full_name)))
+            # Hook each conv layer in the block
+            for conv_name in ["conv1", "conv2", "conv3"]:
+                if hasattr(block, conv_name):
+                    full_name = f"{stage_name}.{block_idx}.{conv_name}"
+                    conv_module = getattr(block, conv_name)
+                    hook_handles.append(conv_module.register_forward_hook(make_hook(full_name)))
                     layer_names.append(full_name)
-
-            # Final sublayer: hook on the whole block (after residual add + relu)
-            block_name = f"{stage_name}.{block_idx}"
-            hook_handles.append(block.register_forward_hook(make_hook(block_name)))
-            layer_names.append(block_name)
 
     # 3) avgpool
     hook_handles.append(model.avgpool.register_forward_hook(make_hook("avgpool")))
@@ -233,14 +218,15 @@ def main():
         print(f"  {layer}: {features[layer].shape}")
 
     # --------------------------------------------------------
-    # Compute RDMs per layer
+    # Compute RDMs per layer (with optional PCA)
     # --------------------------------------------------------
-    print(f"\nComputing RDMs (metric={args.metric}) ...")
+    print(f"\nComputing RDMs (metric={args.metric}, pca={args.pca_components}) ...")
     save_dict = {
         "indices": all_indices.astype(np.int32),
         "distance_metric": np.array(args.metric),
         "resnet_variant": np.array(args.resnet_variant),
         "layers": np.array(layer_names),
+        "pca_components": np.array(args.pca_components),
     }
 
     for layer in layer_names:
@@ -248,6 +234,14 @@ def main():
 
         # Restore original stimulus ordering
         feat_ordered = reorder_features_to_original_index(feat, all_indices)
+
+        # Apply PCA if requested and feature dim > n_components
+        if args.pca_components > 0 and feat_ordered.shape[1] > args.pca_components:
+            pca = PCA(n_components=args.pca_components)
+            feat_ordered = pca.fit_transform(feat_ordered)
+            print(f"  {layer}: PCA {feat.shape[1]} -> {feat_ordered.shape[1]}")
+        else:
+            print(f"  {layer}: no PCA (dim={feat_ordered.shape[1]})")
 
         # Compute RDM
         rdm_condensed, rdm_square = compute_rdm(feat_ordered, metric=args.metric)

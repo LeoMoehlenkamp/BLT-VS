@@ -184,8 +184,6 @@ def main():
             rdm = rankdata(rdm)
 
         rdm = squareform(rdm)
-        rdm = rdm[sort_idx][:, sort_idx]
-        rdm = squareform(rdm)
 
         monkey_timecourse.append(rdm)
         monkey_times_used.append(t)
@@ -224,12 +222,7 @@ def main():
         else:
             rdm_vec = rdm
 
-        # Apply same sort_idx reordering as monkey for consistency
-        rdm_sq = squareform(rdm_vec) if rdm_vec.ndim == 1 else rdm
-        rdm_sorted = rdm_sq[sort_idx][:, sort_idx]
-        rdm_vec_sorted = squareform(rdm_sorted)
-
-        resnet_rdm_dict[layer] = rdm_vec_sorted
+        resnet_rdm_dict[layer] = rdm_vec
         resnet_labels.append(layer)
 
     if not resnet_labels:

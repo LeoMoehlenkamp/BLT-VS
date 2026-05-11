@@ -184,6 +184,7 @@ def main():
             rdm = rankdata(rdm)
 
         rdm = squareform(rdm)
+        rdm = squareform(rdm)
 
         monkey_timecourse.append(rdm)
         monkey_times_used.append(t)
@@ -221,6 +222,9 @@ def main():
             rdm_vec = squareform(rdm)
         else:
             rdm_vec = rdm
+
+        rdm_sq = squareform(rdm_vec) if rdm_vec.ndim == 1 else rdm
+        rdm_vec = squareform(rdm_sq)
 
         resnet_rdm_dict[layer] = rdm_vec
         resnet_labels.append(layer)

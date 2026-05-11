@@ -15,7 +15,7 @@
 # =============================================
 RESNET_VARIANT="resnet50"
 BATCH_SIZE=32
-PCA_COMPONENTS=1000
+PCA_COMPONENTS=0
 PLOT_PANELS=1
 
 # =============================================

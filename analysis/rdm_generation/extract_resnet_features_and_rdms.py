@@ -104,8 +104,8 @@ def main():
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--metric", type=str, default="cosine",
                         help="Distance metric for first-order RDMs")
-    parser.add_argument("--pca_components", type=int, default=1000,
-                        help="Number of PCA components (0 = no PCA)")
+    parser.add_argument("--pca_components", type=int, default=0,
+                        help="Number of PCA components (0 = no PCA, default=0 for sanity checks)")
     parser.add_argument("--save_dir", type=str,
                         default="analysis_outputs/resnet_rdms")
     args = parser.parse_args()

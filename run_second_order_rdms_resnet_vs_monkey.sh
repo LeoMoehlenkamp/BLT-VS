@@ -16,12 +16,12 @@
 # ============================================================
 
 # --- EDIT THESE ---
-RESNET_VARIANT="resnet50"
+RESNET_VARIANT="resnet18"
 METRIC="cosine"
 RDM_TYPE="ranked"
 
 # Paths
-MONKEY_PKL="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_lfp_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_lfp.pkl"
+MONKEY_PKL="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_mua_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_mua.pkl"
 STIMULUS_CSV="/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
 
 # Derived paths
@@ -65,6 +65,9 @@ python analysis/rdm_generation/second_order_rdms_resnet_vs_monkey.py \
     --save_dir "$SAVE_DIR" \
     --metric "$METRIC" \
     --rdm_type "$RDM_TYPE" \
+    --t_start 0 \
+    --t_end 160 \
+    --t_step 10 \
     --plot_panels 1
 
 echo "====================================="

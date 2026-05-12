@@ -140,11 +140,17 @@ def extract_matching_keys(npz_file, area, metric, rdm_type):
 # Data loading
 # ============================================================
 
-def load_monkey_rdms(args, sort_idx):
+def load_monkey_rdms(args, stimulus_csv):
     """Load and pre-process monkey RDMs (sort + optional rank)."""
     print(f"Loading monkey RDMs: {args.monkey_pkl_path}")
     with open(args.monkey_pkl_path, "rb") as f:
         monkey_rdm_data = pickle.load(f)
+
+    # Use the label column from the monkey data config (e.g. "filenames")
+    # to get sort indices that preserve all stimuli (not collapsed to categories)
+    label_col = monkey_rdm_data["data_cfg"]["labels"]
+    print(f"  Monkey label column: {label_col}")
+    sort_idx = get_rdm_design_sort_indices(stimulus_csv, reduce_to_column=label_col)
 
     monkey_time = np.array(monkey_rdm_data["time"])
     monkey_rdms_raw = monkey_rdm_data["rdms"]
@@ -326,11 +332,7 @@ def main():
     # ---------------------------------------------------------
     # 1. Load data
     # ---------------------------------------------------------
-    # Sort indices from stimulus csv
-    print("Loading stimulus info for sorting...")
-    sort_idx = get_rdm_design_sort_indices(args.stimulus_csv)
-
-    monkey_tc, monkey_times, monkey_meta = load_monkey_rdms(args, sort_idx)
+    monkey_tc, monkey_times, monkey_meta = load_monkey_rdms(args, args.stimulus_csv)
 
     print(f"\nLoading BLT-VS ANN RDMs: {args.ann_rdm_path}")
     ann_data = np.load(args.ann_rdm_path, allow_pickle=True)

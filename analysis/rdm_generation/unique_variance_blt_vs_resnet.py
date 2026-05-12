@@ -179,7 +179,7 @@ def load_monkey_rdms(args, stimulus_csv):
     timecourse = np.array(timecourse, dtype=np.float64)
     times_used = np.array(times_used, dtype=np.int32)
     print(f"Monkey: {len(times_used)} timepoints, {timecourse.shape[1]} pairs")
-    return timecourse, times_used, monkey_rdm_data
+    return timecourse, times_used, monkey_rdm_data, sort_idx
 
 
 def load_ann_rdms(args, ann_data):
@@ -211,8 +211,8 @@ def load_ann_rdms(args, ann_data):
     return rdm_dict, keys_by_area, all_keys
 
 
-def load_resnet_rdms(args):
-    """Load ResNet RDMs from pkl or npz."""
+def load_resnet_rdms(args, sort_idx):
+    """Load ResNet RDMs from pkl or npz and reorder to match sorted stimulus order."""
     rdm_dict = {}
     all_keys = []
 
@@ -220,8 +220,8 @@ def load_resnet_rdms(args):
         print(f"Loading ResNet RDMs from pkl: {args.resnet_rdm_pkl}")
         with open(args.resnet_rdm_pkl, "rb") as f:
             data = pickle.load(f)
-        all_keys = data["selected_nodes"]
-        rdm_dict = data["rdms"]
+        all_keys = list(data["selected_nodes"])
+        rdm_dict = dict(data["rdms"])
         variant = (path.basename(args.resnet_rdm_pkl).split("-")[1]
                    if "-" in path.basename(args.resnet_rdm_pkl) else "resnet")
     else:
@@ -240,6 +240,14 @@ def load_resnet_rdms(args):
                 arr = squareform(arr)
             rdm_dict[layer] = arr
             all_keys.append(layer)
+
+    # Reorder ResNet RDMs to sorted stimulus order (they are stored unsorted)
+    print(f"  Sorting ResNet RDMs to match monkey/ANN stimulus order...")
+    for key in all_keys:
+        v = rdm_dict[key]
+        sq = squareform(v)
+        sq = sq[sort_idx][:, sort_idx]
+        rdm_dict[key] = squareform(sq)
 
     print(f"ResNet ({variant}): {len(all_keys)} layers")
     return rdm_dict, all_keys, variant
@@ -332,13 +340,13 @@ def main():
     # ---------------------------------------------------------
     # 1. Load data
     # ---------------------------------------------------------
-    monkey_tc, monkey_times, monkey_meta = load_monkey_rdms(args, args.stimulus_csv)
+    monkey_tc, monkey_times, monkey_meta, sort_idx = load_monkey_rdms(args, args.stimulus_csv)
 
     print(f"\nLoading BLT-VS ANN RDMs: {args.ann_rdm_path}")
     ann_data = np.load(args.ann_rdm_path, allow_pickle=True)
     ann_rdm_dict, ann_keys_by_area, all_ann_keys = load_ann_rdms(args, ann_data)
 
-    resnet_rdm_dict, all_resnet_keys, resnet_variant = load_resnet_rdms(args)
+    resnet_rdm_dict, all_resnet_keys, resnet_variant = load_resnet_rdms(args, sort_idx)
 
     # Filter BLT-VS areas if requested
     if args.blt_area is not None:

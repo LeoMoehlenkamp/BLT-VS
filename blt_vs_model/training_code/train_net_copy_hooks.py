@@ -113,6 +113,11 @@ parser.add_argument('--name', type=str, default='', help='Optional custom name f
 parser.add_argument('--use_mixup', type=float, default=0.0, help='MixUp alpha (0 to disable, only used for rn50)')
 parser.add_argument('--use_cutmix', type=float, default=0.0, help='CutMix alpha (0 to disable, only used for rn50)')
 parser.add_argument('--ra_reps', type=int, default=0, help='Repeated Augmentation repetitions (0 to disable, only used for rn50)')
+parser.add_argument('--optimizer_type', type=str, default='adam', help='Optimizer: adam | sgd (sgd recommended for rn50)')
+parser.add_argument('--warmup_epochs', type=int, default=5, help='Number of warmup epochs')
+parser.add_argument('--use_ema', type=int, default=0, help='Use Exponential Moving Average model (1=on, 0=off)')
+parser.add_argument('--ema_decay', type=float, default=0.9999, help='EMA decay factor')
+parser.add_argument('--lr_scheduler_type', type=str, default='linearfit', help='LR scheduler: linearfit | cosine')
 
 args = parser.parse_args()
 
@@ -409,14 +414,44 @@ if __name__ == '__main__':
 
     # criterion and optimizer setup
     criterion = nn.CrossEntropyLoss(weight=hyp['dataset']['class_weights'], label_smoothing=0.1)
+    hyp['optimizer']['type'] = args.optimizer_type
     optimizer = get_optimizer(hyp,net)
     scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
 
-    # LR scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, threshold=1e-2, verbose=True) # usual scheduler
-    lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=args.lr_patience)
-    
-    # Warm-up scheduler - this already initialises the lr to base_lr/lr_scale_factor - has an internal counter which it uses to do its updates when .step() is called!
-    warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch_h: ((hyp['optimizer']['lr']['base_lr'] - hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor']) / (hyp['optimizer']['lr']['warmup_epochs']-1)) * epoch_h + hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor'])
+    # --- EMA model (rn50 only) ---
+    ema_model = None
+    if args.use_ema and args.network == 'rn50':
+        from copy import deepcopy
+        ema_model = deepcopy(net)
+        ema_model.eval()
+        ema_model.requires_grad_(False)
+        ema_decay = args.ema_decay
+        print(f'Using EMA with decay={ema_decay}')
+
+    # --- LR Scheduler ---
+    if args.lr_scheduler_type == 'cosine' and args.network == 'rn50':
+        # Cosine annealing after warmup
+        total_epochs = hyp['optimizer']['n_epochs']
+        warmup_epochs = args.warmup_epochs
+        # During warmup: linear ramp from base_lr/100 to base_lr
+        warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
+            optimizer, start_factor=1.0/100, end_factor=1.0, total_iters=warmup_epochs
+        )
+        # After warmup: cosine decay to 0
+        cosine_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=total_epochs - warmup_epochs, eta_min=1e-6
+        )
+        lr_scheduler = torch.optim.lr_scheduler.SequentialLR(
+            optimizer, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[warmup_epochs]
+        )
+        print(f'Using CosineAnnealing LR scheduler (warmup={warmup_epochs}, total={total_epochs})')
+        use_cosine_scheduler = True
+    else:
+        # Default for BLT-VS: LinearFitScheduler with patience
+        lr_scheduler = LinearFitScheduler(optimizer, num_epochs=5, factor=1./2, min_percent_change=1.0, mode='min', verbose=True, patience=args.lr_patience)
+        # Warm-up scheduler - this already initialises the lr to base_lr/lr_scale_factor
+        warmup_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch_h: ((hyp['optimizer']['lr']['base_lr'] - hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor']) / (hyp['optimizer']['lr']['warmup_epochs']-1)) * epoch_h + hyp['optimizer']['lr']['base_lr']/hyp['optimizer']['lr']['lr_scale_factor'])
+        use_cosine_scheduler = False
 
     # logging losses and accuracies
     if hyp['misc']['start_from_epoch'] == 0:
@@ -520,6 +555,14 @@ if __name__ == '__main__':
                 scaler.update()
                 optimizer.zero_grad()
 
+                # EMA update
+                if ema_model is not None:
+                    with torch.no_grad():
+                        net_params = (net.module if hasattr(net, 'module') else net).state_dict()
+                        for key, ema_param in ema_model.state_dict().items():
+                            model_param = net_params[key]
+                            ema_param.copy_(ema_decay * ema_param + (1.0 - ema_decay) * model_param)
+
             train_loss_running += loss.item() * accum_steps  # undo scaling for logging
             train_acc_running += np.mean(compute_accuracy(outputs, hard_lbls))
 
@@ -551,7 +594,10 @@ if __name__ == '__main__':
             max_mem_allocated += torch.cuda.max_memory_reserved(device) / (1024**3)
         print(f'Max GPU(s) memory reserved: {max_mem_allocated} Gb; {gpu_count} GPU(s)')
         
-        val_loss_running, val_acc_running = eval_network(val_loader, net, criterion, hyp)
+        # Use EMA model for validation if available
+        eval_model = ema_model if ema_model is not None else net
+        eval_model.eval()
+        val_loss_running, val_acc_running = eval_network(val_loader, eval_model, criterion, hyp)
         net.train()
 
         # val_acc_running sollte timestep-wise sein -> z.B. [acc_t1, acc_t2, ...]
@@ -579,16 +625,10 @@ if __name__ == '__main__':
 
             print(f"New BEST model at epoch {best_epoch} (val acc = {best_val_acc:.2f}%)")
 
-            if torch.cuda.device_count() > 1:
-                save_filtered_state_dict(
-                    net.module.state_dict(),
-                    f'{net_path}/{net_name}_BEST.pth'
-                )
-            else:
-                save_filtered_state_dict(
-                    net.state_dict(),
-                    f'{net_path}/{net_name}_BEST.pth'
-                )
+            # Save EMA model if available, otherwise save raw model
+            best_state_dict = ema_model.state_dict() if ema_model is not None else \
+                (net.module.state_dict() if torch.cuda.device_count() > 1 else net.state_dict())
+            save_filtered_state_dict(best_state_dict, f'{net_path}/{net_name}_BEST.pth')
 
 
         ts_string = " | ".join([f"t{i+1}:{acc:.2f}%" for i, acc in enumerate(val_acc_ts)])
@@ -600,9 +640,15 @@ if __name__ == '__main__':
         print(f'Val loss: {val_losses[-1]:.2f}; acc: {val_accuracies[-1]:.2f}%; acc_t: {val_acc_running}')
 
         if (epoch) < hyp['optimizer']['lr']['warmup_epochs']:
-            warmup_scheduler.step()
+            if use_cosine_scheduler:
+                lr_scheduler.step()
+            else:
+                warmup_scheduler.step()
         else:
-            lr_scheduler.step(val_losses[-1])
+            if use_cosine_scheduler:
+                lr_scheduler.step()
+            else:
+                lr_scheduler.step(val_losses[-1])
 
         if (epoch+hyp['misc']['start_from_epoch']) % hyp['misc']['save_logs'] == 0:
             print('Saving metrics!')

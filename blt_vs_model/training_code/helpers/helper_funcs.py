@@ -387,7 +387,7 @@ def get_Dataset_loaders(hyp, splits):
             num_workers=hyp['optimizer']['dataloader']['num_workers_train'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train'],
             pin_memory=True,
-            persistent_workers=True,
+            persistent_workers=False,
             collate_fn=train_collate_fn
         )
     else:
@@ -400,7 +400,7 @@ def get_Dataset_loaders(hyp, splits):
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
             pin_memory=True,
-            persistent_workers=True
+            persistent_workers=False
         )
     else:
         val_loader = None
@@ -412,7 +412,7 @@ def get_Dataset_loaders(hyp, splits):
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
             pin_memory=True,
-            persistent_workers=True
+            persistent_workers=False
         )
     else:
         test_loader = None

@@ -31,11 +31,11 @@ SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__2026031
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
 OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
-OVERRIDE_BATCH_SIZE="64"
-OVERRIDE_BATCH_SIZE_VAL_TEST="64"
+OVERRIDE_BATCH_SIZE="128"
+OVERRIDE_BATCH_SIZE_VAL_TEST="128"
 OVERRIDE_N_EPOCHS="15"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
-OVERRIDE_NUM_WORKERS="2"
+OVERRIDE_NUM_WORKERS="4"
 
 # --- Environment setup ---
 spack load miniconda3

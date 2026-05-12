@@ -19,8 +19,8 @@ DATASET="miniecoset"          # ecoset | miniecoset | imagenet
 DATASET_MODE=0                # 0 = EcoSet, 1 = FakeData, 2 = CIFAR100
 EPOCHS=100
 BATCH_SIZE=256
-LR=3e-3
-WEIGHT_DECAY=1e-2
+LR=0.5
+WEIGHT_DECAY=2e-5
 NUM_WORKERS=8
 RUN_NAME="resnet50__miniecoset"   # leave empty for auto-generated name
 
@@ -70,12 +70,16 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --n_epochs "$EPOCHS" \
     --learning_rate "$LR" \
     --weight_decay "$WEIGHT_DECAY" \
-    --lr_patience 5 \
     --num_workers "$NUM_WORKERS" \
     --grad_clipping 1 \
     --use_mixup 0.2 \
     --use_cutmix 1.0 \
-    --ra_reps 4
+    --ra_reps 4 \
+    --optimizer_type sgd \
+    --warmup_epochs 10 \
+    --use_ema 1 \
+    --ema_decay 0.9999 \
+    --lr_scheduler_type cosine
 
 echo "====================================="
 echo "Finished: $(date)"

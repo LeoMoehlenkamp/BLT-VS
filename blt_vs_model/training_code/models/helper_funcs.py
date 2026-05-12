@@ -165,7 +165,9 @@ def get_optimizer(hyp,net):
     trainable_params = list(filter(lambda p: p.requires_grad, net.parameters()))
     weight_decay = hyp['optimizer'].get('weight_decay', 0.0)
 
-    if hyp['optimizer']['type'] == 'adam':
+    if hyp['optimizer']['type'] == 'sgd':
+        return optim.SGD(trainable_params, lr=1., momentum=0.9, weight_decay=weight_decay)
+    elif hyp['optimizer']['type'] == 'adam':
         if weight_decay > 0:
             return optim.AdamW(trainable_params, lr=1., weight_decay=weight_decay)
         return optim.Adam(trainable_params, lr=1.)

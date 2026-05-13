@@ -485,6 +485,19 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         Replaces None-valued tensor arguments with a zero-size sentinel
         so that checkpoint() sees only Tensors, then undoes the mapping
         inside the call."""
+        # Determine device from whichever input is available
+        _dev = None
+        for _t in (bu_input, bu_l_input, td_input, td_l_input, bu_skip_input, td_skip_input):
+            if isinstance(_t, torch.Tensor):
+                _dev = _t.device
+                break
+        if _dev is None:
+            # All inputs are None — nothing to compute
+            return None, None
+
+        _sentinel = torch.tensor(0.0, device=_dev)
+        _s = lambda x: _sentinel if x is None else x
+
         # checkpoint needs a plain function — we use a closure
         def _fn(bu, bu_l, td, td_l, bu_s, td_s):
             # Restore None from zero-dim sentinels
@@ -497,8 +510,7 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                 bu_skip_input=_none(bu_s),
                 td_skip_input=_none(td_s),
             )
-        _sentinel = torch.tensor(0.0, device=next(self.parameters()).device)
-        _s = lambda x: _sentinel if x is None else x
+
         return torch_checkpoint(
             _fn,
             _s(bu_input), _s(bu_l_input), _s(td_input),

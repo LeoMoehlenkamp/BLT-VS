@@ -114,7 +114,8 @@ def get_network_model(hyp):
             skip_connections=skip_connections,
             bio_unroll=bio_unroll,
             readout_type=readout_type,
-            bottlenecks=hyp["network"].get("bottlenecks", {})
+            bottlenecks=hyp["network"].get("bottlenecks", {}),
+            gradient_checkpointing=hyp.get("gradient_checkpointing", False),
         )
 
         net_name = f'{network}_dataset_{dataset}_num_{netnum}'

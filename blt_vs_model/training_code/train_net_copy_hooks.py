@@ -118,6 +118,7 @@ parser.add_argument('--warmup_epochs', type=int, default=5, help='Number of warm
 parser.add_argument('--use_ema', type=int, default=0, help='Use Exponential Moving Average model (1=on, 0=off)')
 parser.add_argument('--ema_decay', type=float, default=0.9999, help='EMA decay factor')
 parser.add_argument('--lr_scheduler_type', type=str, default='linearfit', help='LR scheduler: linearfit | cosine')
+parser.add_argument('--gradient_checkpointing', type=int, default=0, help='Enable gradient checkpointing to reduce memory (1=on, 0=off). Trades ~30%% compute for ~3-4x memory savings.')
 
 args = parser.parse_args()
 
@@ -184,9 +185,9 @@ hyp = {
         'device': 'cuda', # device to train the network on
         'dataloader': {
             'num_workers_train': args.num_workers, # number of cpu workers processing the batches 
-            'prefetch_factor_train': 4, # number of batches kept in memory by each worker (providing quick access for the gpu)
-            'num_workers_val_test': 3, # do not need lots of workers for val/test
-            'prefetch_factor_val_test': 4 
+            'prefetch_factor_train': 2, # reduced from 4 to limit system RAM usage
+            'num_workers_val_test': 2, # do not need lots of workers for val/test
+            'prefetch_factor_val_test': 2 
         }
     },
     'misc': {
@@ -197,6 +198,8 @@ hyp = {
         'start_from_epoch': args.start_from_epoch # at which epoch to start training (data pulled from epoch before that)
     }
 }
+
+hyp["gradient_checkpointing"] = bool(args.gradient_checkpointing)
 
 hyp["dataset_mode"] = args.dataset_mode
 if hyp["dataset_mode"] == 2:
@@ -547,6 +550,13 @@ if __name__ == '__main__':
             
             scaler.scale(loss).backward()
 
+            # --- Free computation graph and intermediate tensors immediately ---
+            train_loss_running += loss.item() * accum_steps  # undo scaling for logging
+            with torch.no_grad():
+                current_acc = np.mean(compute_accuracy(outputs, hard_lbls))
+            train_acc_running += current_acc
+            del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
+
             if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
                 if args.grad_clipping:
                     scaler.unscale_(optimizer)
@@ -563,13 +573,8 @@ if __name__ == '__main__':
                             model_param = net_params[key]
                             ema_param.copy_(ema_decay * ema_param + (1.0 - ema_decay) * model_param)
 
-            train_loss_running += loss.item() * accum_steps  # undo scaling for logging
-            train_acc_running += np.mean(compute_accuracy(outputs, hard_lbls))
-
-            current_acc = np.mean(compute_accuracy(outputs, hard_lbls))
-
             pbar.set_postfix({
-                "loss": f"{loss.item() * accum_steps:.3f}",
+                "loss": f"{train_loss_running / (step_idx + 1):.3f}",
                 "acc": f"{current_acc:.2f}%"
             })
 

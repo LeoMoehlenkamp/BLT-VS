@@ -76,8 +76,14 @@ class Ecoset(torch.utils.data.Dataset):
             self.labels = None
 
     def _open_h5(self):
-        """Lazily open the HDF5 file in the current worker process."""
-        self._h5_file = h5py.File(self.root_dir, "r")
+        """Lazily open the HDF5 file in the current worker process.
+        Limit the chunk cache to 256 MB to prevent RAM from ballooning
+        when many DataLoader workers each hold their own file handle."""
+        self._h5_file = h5py.File(
+            self.root_dir, "r",
+            rdcc_nbytes=256 * 1024 * 1024,  # 256 MB chunk cache per worker
+            rdcc_nslots=10007,               # prime number of hash slots
+        )
         self.images = self._h5_file[self.split]['data']
         self.labels = self._h5_file[self.split]['labels']
 

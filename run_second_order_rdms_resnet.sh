@@ -11,17 +11,23 @@
 #SBATCH --error=logs/%x_%j.err
 
 # ============================================================
-# BLT-VS vs pretrained ResNet — full pipeline
+# BLT-VS vs trained ResNet — full pipeline
 #
 # Step 1: Extract ResNet features + compute RDMs
 # Step 2: Second-order RDM comparison with BLT-VS model
 # ============================================================
 
 # --- EDIT THESE ---
+USE_TRAINED_RESNET=1  # 1 = use trained checkpoint, 0 = use pretrained ImageNet weights
 MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
 RESNET_VARIANT="resnet50"
+RESNET_RUN_NAME="resnet50__miniecoset__20260512_150116"
+NUM_CLASSES=565
 METRIC="cosine"
 RDM_TYPE="ranked"
+
+# Checkpoint path (only used if USE_TRAINED_RESNET=1)
+RESNET_CHECKPOINT="logs/net_params/${RESNET_RUN_NAME}/${RESNET_RUN_NAME}_BEST.pth"
 
 # Paths
 CSV_PATH="/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
@@ -30,7 +36,11 @@ ANN_RDM_DIR="analysis_outputs/ann_rdms"
 
 # Derived paths
 RESNET_RDM_DIR="analysis_outputs/resnet_rdms"
-RESNET_RDM_PATH="${RESNET_RDM_DIR}/${RESNET_VARIANT}_rdms.npz"
+if [ "$USE_TRAINED_RESNET" -eq 1 ]; then
+    RESNET_RDM_PATH="${RESNET_RDM_DIR}/${RESNET_RUN_NAME}_rdms.npz"
+else
+    RESNET_RDM_PATH="${RESNET_RDM_DIR}/${RESNET_VARIANT}_rdms.npz"
+fi
 ANN_RDM_PATH="${ANN_RDM_DIR}/${MODEL_NAME}_${METRIC}_${RDM_TYPE}/${MODEL_NAME}_ann_rdms.npz"
 SAVE_DIR="analysis_outputs/second_order_ann_vs_resnet"
 
@@ -57,6 +67,16 @@ cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 echo "====================================="
 echo "Step 1: Extract ResNet features + RDMs"
 echo "  Variant:    $RESNET_VARIANT"
+if [ "$USE_TRAINED_RESNET" -eq 1 ]; then
+    echo "  Mode:       Trained ($RESNET_RUN_NAME)"
+    echo "  Checkpoint: $RESNET_CHECKPOINT"
+    CHECKPOINT_ARG="--checkpoint $RESNET_CHECKPOINT --num_classes $NUM_CLASSES"
+    SAVE_NAME_ARG="--save_name $RESNET_RUN_NAME"
+else
+    echo "  Mode:       Pretrained ImageNet"
+    CHECKPOINT_ARG=""
+    SAVE_NAME_ARG=""
+fi
 echo "  CSV:        $CSV_PATH"
 echo "  Image root: $IMAGE_ROOT"
 echo "  Start time: $(date)"
@@ -66,8 +86,10 @@ python analysis/rdm_generation/extract_resnet_features_and_rdms.py \
     --csv_path "$CSV_PATH" \
     --image_root "$IMAGE_ROOT" \
     --resnet_variant "$RESNET_VARIANT" \
+    $CHECKPOINT_ARG \
     --metric "$METRIC" \
     --save_dir "$RESNET_RDM_DIR" \
+    $SAVE_NAME_ARG \
     --batch_size 64
 
 echo "====================================="

@@ -106,6 +106,13 @@ def main():
                         help="Distance metric for first-order RDMs")
     parser.add_argument("--pca_components", type=int, default=0,
                         help="Number of PCA components (0 = no PCA, default=0 for sanity checks)")
+    parser.add_argument("--checkpoint", type=str, default="",
+                        help="Path to a trained ResNet checkpoint (.pth). "
+                             "If empty, uses pretrained ImageNet weights.")
+    parser.add_argument("--num_classes", type=int, default=1000,
+                        help="Number of output classes for the custom ResNet (default=1000)")
+    parser.add_argument("--save_name", type=str, default="",
+                        help="Custom name for the output file (default: resnet_variant)")
     parser.add_argument("--save_dir", type=str,
                         default="analysis_outputs/resnet_rdms")
     args = parser.parse_args()
@@ -116,11 +123,22 @@ def main():
     print(f"Device: {device}")
 
     # --------------------------------------------------------
-    # Load pretrained ResNet
+    # Load ResNet
     # --------------------------------------------------------
-    print(f"\nLoading pretrained {args.resnet_variant} ...")
-    model_fn = getattr(models, args.resnet_variant)
-    model = model_fn(weights="IMAGENET1K_V1")
+    if args.checkpoint:
+        print(f"\nLoading custom-trained {args.resnet_variant} from {args.checkpoint} ...")
+        # Use the project's own ResNet architecture
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..",
+                                         "blt_vs_model", "training_code", "models"))
+        from ResNet import ResNet50
+        model = ResNet50(num_classes=args.num_classes)
+        state_dict = torch.load(args.checkpoint, map_location=device, weights_only=True)
+        model.load_state_dict(state_dict)
+        print(f"  Loaded checkpoint with {args.num_classes} classes")
+    else:
+        print(f"\nLoading pretrained {args.resnet_variant} ...")
+        model_fn = getattr(models, args.resnet_variant)
+        model = model_fn(weights="IMAGENET1K_V1")
     model = model.to(device)
     model.eval()
 
@@ -262,7 +280,8 @@ def main():
     # --------------------------------------------------------
     # Save
     # --------------------------------------------------------
-    save_path = os.path.join(args.save_dir, f"{args.resnet_variant}_rdms.npz")
+    save_name = args.save_name if args.save_name else args.resnet_variant
+    save_path = os.path.join(args.save_dir, f"{save_name}_rdms.npz")
     np.savez_compressed(save_path, **save_dict)
     print(f"\nSaved ResNet RDMs to: {save_path}")
 

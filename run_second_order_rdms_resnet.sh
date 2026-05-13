@@ -22,7 +22,7 @@ USE_TRAINED_RESNET=1  # 1 = use trained checkpoint, 0 = use pretrained ImageNet 
 MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
 RESNET_VARIANT="resnet50"
 RESNET_RUN_NAME="resnet50__miniecoset__20260512_150116"
-NUM_CLASSES=565
+NUM_CLASSES=100
 METRIC="cosine"
 RDM_TYPE="ranked"
 

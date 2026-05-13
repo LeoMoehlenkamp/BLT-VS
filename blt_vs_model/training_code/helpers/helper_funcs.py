@@ -77,18 +77,34 @@ class Ecoset(torch.utils.data.Dataset):
 
     def _open_h5(self):
         """Lazily open the HDF5 file in the current worker process.
-        Limit the chunk cache to 256 MB to prevent RAM from ballooning
+        Limit the chunk cache to 32 MB to prevent RAM from ballooning
         when many DataLoader workers each hold their own file handle."""
         self._h5_file = h5py.File(
             self.root_dir, "r",
-            rdcc_nbytes=256 * 1024 * 1024,  # 256 MB chunk cache per worker
+            rdcc_nbytes=32 * 1024 * 1024,   # 32 MB chunk cache per worker
             rdcc_nslots=10007,               # prime number of hash slots
         )
         self.images = self._h5_file[self.split]['data']
         self.labels = self._h5_file[self.split]['labels']
+        self._access_count = 0
+        # Open a separate fd to advise the OS about page cache
+        try:
+            self._advise_fd = os.open(self.root_dir, os.O_RDONLY)
+            # Tell kernel not to readahead (DataLoader shuffles randomly)
+            os.posix_fadvise(self._advise_fd, 0, 0, os.POSIX_FADV_RANDOM)
+        except (AttributeError, OSError):
+            self._advise_fd = None  # Not on Linux or not supported
 
     def __len__(self):
         return self._len
+
+    def __del__(self):
+        # Clean up file descriptors
+        if hasattr(self, '_advise_fd') and self._advise_fd is not None:
+            try:
+                os.close(self._advise_fd)
+            except OSError:
+                pass
 
     def __getitem__(self, idx): # accepts ids and returns the images and labels transformed to the Dataloader
         if torch.is_tensor(idx):
@@ -102,6 +118,16 @@ class Ecoset(torch.utils.data.Dataset):
                 self._open_h5()
             imgs = torch.from_numpy(np.asarray(self.images[idx])).permute((2,0,1))    
             labels = torch.from_numpy(np.asarray(self.labels[idx].astype(np.int64)))
+
+            # Every 500 reads, evict cached file pages from system RAM.
+            # Without this, the OS page cache for the ~300GB H5 file
+            # grows until the cgroup OOM killer fires.
+            self._access_count += 1
+            if self._access_count % 500 == 0 and getattr(self, '_advise_fd', None) is not None:
+                try:
+                    os.posix_fadvise(self._advise_fd, 0, 0, os.POSIX_FADV_DONTNEED)
+                except (AttributeError, OSError):
+                    pass
 
         if self.transform:
             imgs = self.transform(imgs)
@@ -392,7 +418,7 @@ def get_Dataset_loaders(hyp, splits):
             sampler=train_sampler,
             num_workers=hyp['optimizer']['dataloader']['num_workers_train'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train'],
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=False,
             collate_fn=train_collate_fn
         )
@@ -405,7 +431,7 @@ def get_Dataset_loaders(hyp, splits):
             batch_size=hyp['misc']['batch_size_val_test'],
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=False
         )
     else:
@@ -417,7 +443,7 @@ def get_Dataset_loaders(hyp, splits):
             batch_size=hyp['misc']['batch_size_val_test'],
             num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
             prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=False
         )
     else:

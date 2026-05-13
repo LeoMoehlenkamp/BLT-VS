@@ -3,7 +3,7 @@
 #SBATCH -w klab-7
 #SBATCH --nodes=1
 #SBATCH -c 16
-#SBATCH --mem=400G
+#SBATCH --mem=0
 #SBATCH --gres=gpu:2
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
@@ -31,8 +31,8 @@ SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__2026031
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
 OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
-OVERRIDE_BATCH_SIZE="32"
-OVERRIDE_BATCH_SIZE_VAL_TEST="32"
+OVERRIDE_BATCH_SIZE="64"
+OVERRIDE_BATCH_SIZE_VAL_TEST="64"
 OVERRIDE_N_EPOCHS="15"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
 OVERRIDE_NUM_WORKERS="2"
@@ -45,6 +45,7 @@ spack load cudnn@8.6.0.163-11.8
 eval "$(conda shell.bash hook)"
 
 export NCCL_SOCKET_IFNAME=lo
+export HDF5_USE_FILE_LOCKING=FALSE
 mkdir -p logs
 
 source ~/startup_conda.sh
@@ -132,8 +133,7 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --learning_rate "$LR" \
     --num_workers "$NUM_WORKERS" \
     --grad_clipping "$SRC_GRAD_CLIP" \
-    --grad_accum_steps 8 \
-    --gradient_checkpointing 1
+    --grad_accum_steps 4
 
 echo "====================================="
 echo "Finished: $(date)"

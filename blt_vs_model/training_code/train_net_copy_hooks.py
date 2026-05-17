@@ -488,6 +488,29 @@ if __name__ == '__main__':
 
     print('\nTraining begins here!\n')
 
+    # ---------------------------------------------------------------
+    # Page cache evictor: periodically tell the OS to drop cached
+    # pages of the H5 file.  This runs in the main process and is
+    # the most reliable way to keep the cgroup memory under control
+    # when the dataset lives on NFS.
+    # ---------------------------------------------------------------
+    _h5_path = hyp['dataset']['dataset_path'] + hyp['dataset']['name'] + '_square256_proper_chunks.h5'
+    _evict_fd = None
+    try:
+        _evict_fd = os.open(_h5_path, os.O_RDONLY)
+        os.posix_fadvise(_evict_fd, 0, 0, os.POSIX_FADV_RANDOM)
+        print(f"Page cache evictor: opened fd for {_h5_path}")
+    except (AttributeError, OSError) as e:
+        print(f"Page cache evictor: could not open fd ({e})")
+
+    def evict_h5_page_cache():
+        """Call POSIX_FADV_DONTNEED on the whole H5 file to drop pages."""
+        if _evict_fd is not None:
+            try:
+                os.posix_fadvise(_evict_fd, 0, 0, os.POSIX_FADV_DONTNEED)
+            except (AttributeError, OSError):
+                pass
+
     epoch = 1
     training_not_finished = 1
 
@@ -587,6 +610,20 @@ if __name__ == '__main__':
                     mem_total = torch.cuda.get_device_properties(gpu_i).total_memory / (1024**3)
                     print(f"  [Step {step_idx+1}] GPU {gpu_i}: {mem_used:.1f}/{mem_total:.1f} GB reserved")
 
+            # Log system RAM every 500 batches to track page cache growth
+            if (step_idx + 1) % 500 == 0:
+                try:
+                    with open('/proc/meminfo', 'r') as _mi:
+                        lines = {l.split(':')[0]: l.split(':')[1].strip() for l in _mi}
+                    print(f"  [Step {step_idx+1}] SysRAM: MemFree={lines.get('MemFree','?')}, "
+                          f"Cached={lines.get('Cached','?')}, Buffers={lines.get('Buffers','?')}")
+                except Exception:
+                    pass
+
+            # Evict H5 page cache every 50 batches to prevent cgroup OOM
+            if (step_idx + 1) % 50 == 0:
+                evict_h5_page_cache()
+
             if epoch_running_init_flag == 0:
                 epoch_running_init_flag = 1
         pbar.close()
@@ -680,6 +717,13 @@ if __name__ == '__main__':
 
     final_epoch = epoch + hyp['misc']['start_from_epoch'] - 1
     print(f"\nSaving LAST checkpoint (epoch {final_epoch})")
+
+    # Clean up page cache evictor fd
+    if _evict_fd is not None:
+        try:
+            os.close(_evict_fd)
+        except OSError:
+            pass
 
     if torch.cuda.device_count() > 1:
             save_filtered_state_dict(

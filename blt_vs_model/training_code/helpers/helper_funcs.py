@@ -119,11 +119,11 @@ class Ecoset(torch.utils.data.Dataset):
             imgs = torch.from_numpy(np.asarray(self.images[idx])).permute((2,0,1))    
             labels = torch.from_numpy(np.asarray(self.labels[idx].astype(np.int64)))
 
-            # Every 500 reads, evict cached file pages from system RAM.
-            # Without this, the OS page cache for the ~300GB H5 file
-            # grows until the cgroup OOM killer fires.
+            # Evict cached file pages from system RAM on every read.
+            # The ~300GB H5 file on NFS fills the cgroup page cache
+            # and triggers OOM if pages aren't actively evicted.
             self._access_count += 1
-            if self._access_count % 500 == 0 and getattr(self, '_advise_fd', None) is not None:
+            if getattr(self, '_advise_fd', None) is not None:
                 try:
                     os.posix_fadvise(self._advise_fd, 0, 0, os.POSIX_FADV_DONTNEED)
                 except (AttributeError, OSError):

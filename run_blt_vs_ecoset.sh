@@ -3,7 +3,7 @@
 #SBATCH -w klab-7
 #SBATCH --nodes=1
 #SBATCH -c 16
-#SBATCH --mem=480G
+#SBATCH --mem=0
 #SBATCH --gres=gpu:2
 #SBATCH --time=48:00:00
 #SBATCH --job-name=blt_ecoset
@@ -60,44 +60,62 @@ nvidia-smi
 cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 
 # ============================================================
-# Copy EcoSet H5 to node-local storage.
-# NFS page cache is counted against cgroup memory and CANNOT
-# be evicted via posix_fadvise — the only fix is local I/O.
+# Try to copy EcoSet H5 to node-local storage for performance.
+# If no local disk has enough space, fall back to NFS directly.
+# With --mem=0 the cgroup limit = total node RAM, so the kernel
+# can properly evict NFS page cache without OOM.
 # ============================================================
 REMOTE_H5="/share/klab/datasets/ecoset_square256_proper_chunks.h5"
-LOCAL_DIR="${TMPDIR:-/tmp}/ecoset_${SLURM_JOB_ID}"
-LOCAL_H5="${LOCAL_DIR}/ecoset_square256_proper_chunks.h5"
-
-# Check available space before copying
 REMOTE_SIZE_KB=$(du -k "$REMOTE_H5" | cut -f1)
-AVAIL_KB=$(df -k "${TMPDIR:-/tmp}" | tail -1 | awk '{print $4}')
 NEED_KB=$((REMOTE_SIZE_KB + 10*1024*1024))  # file size + 10GB headroom
-echo "Local disk (${TMPDIR:-/tmp}): $(( AVAIL_KB / 1024 / 1024 ))GB available, need $(( NEED_KB / 1024 / 1024 ))GB"
-if [ "$AVAIL_KB" -lt "$NEED_KB" ]; then
-    echo "ERROR: Not enough local disk space for H5 copy. Aborting."
-    echo "Consider requesting a node with more /tmp space, or set TMPDIR to a larger local disk."
-    exit 1
+
+# Candidate local storage directories (checked in order)
+LOCAL_CANDIDATES=("${TMPDIR:-}" "/local" "/scratch" "/localscratch" "/local_scratch" "/tmp")
+
+CHOSEN_DIR=""
+for cand in "${LOCAL_CANDIDATES[@]}"; do
+    [ -z "$cand" ] && continue
+    [ -d "$cand" ] || continue
+    AVAIL_KB=$(df -k "$cand" | tail -1 | awk '{print $4}')
+    echo "Probing $cand: $(( AVAIL_KB / 1024 / 1024 ))GB available (need $(( NEED_KB / 1024 / 1024 ))GB)"
+    if [ "$AVAIL_KB" -ge "$NEED_KB" ]; then
+        CHOSEN_DIR="$cand"
+        break
+    fi
+done
+
+if [ -n "$CHOSEN_DIR" ]; then
+    LOCAL_DIR="${CHOSEN_DIR}/ecoset_${SLURM_JOB_ID}"
+    LOCAL_H5="${LOCAL_DIR}/ecoset_square256_proper_chunks.h5"
+
+    trap "echo 'Cleaning up local data...'; rm -rf ${LOCAL_DIR}" EXIT
+
+    mkdir -p "$LOCAL_DIR"
+    echo "Copying EcoSet to node-local storage..."
+    echo "  From: $REMOTE_H5"
+    echo "  To:   $LOCAL_H5"
+    cp_start=$(date +%s)
+    cp "$REMOTE_H5" "$LOCAL_H5"
+    cp_rc=$?
+    cp_end=$(date +%s)
+    echo "Copy finished in $((cp_end - cp_start))s (exit=$cp_rc)"
+
+    if [ $cp_rc -eq 0 ] && [ -f "$LOCAL_H5" ]; then
+        DATASET_PATH="${LOCAL_DIR}/"
+        echo "Using LOCAL dataset path: $DATASET_PATH"
+    else
+        echo "WARNING: Copy failed, falling back to NFS."
+        rm -rf "$LOCAL_DIR"
+        DATASET_PATH="/share/klab/datasets/"
+        echo "Using NFS dataset path: $DATASET_PATH"
+    fi
+else
+    echo "No local disk with enough space found. Using NFS directly."
+    echo "This works because --mem=0 gives the job all node RAM,"
+    echo "so the kernel can evict NFS page cache normally."
+    DATASET_PATH="/share/klab/datasets/"
 fi
-
-# Clean up local copy when the job exits (success or failure)
-trap "echo 'Cleaning up local data...'; rm -rf ${LOCAL_DIR}" EXIT
-
-mkdir -p "$LOCAL_DIR"
-echo "Copying EcoSet to node-local storage..."
-echo "  From: $REMOTE_H5"
-echo "  To:   $LOCAL_H5"
-cp_start=$(date +%s)
-cp "$REMOTE_H5" "$LOCAL_H5"
-cp_rc=$?
-cp_end=$(date +%s)
-echo "Copy finished in $((cp_end - cp_start))s (exit=$cp_rc)"
-
-if [ $cp_rc -ne 0 ] || [ ! -f "$LOCAL_H5" ]; then
-    echo "ERROR: Failed to copy dataset to local storage. Cannot train."
-    exit 1
-fi
-DATASET_PATH="${LOCAL_DIR}/"
-echo "Using local dataset path: $DATASET_PATH"
+echo "Final dataset path: $DATASET_PATH"
 
 # ============================================================
 # Build command from source args.json + overrides

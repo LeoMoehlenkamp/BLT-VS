@@ -107,6 +107,7 @@ parser.add_argument('--grad_clipping', type=int, default=1)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--lr_patience', type=int, default=2)
 parser.add_argument('--grad_accum_steps', type=int, default=1, help='Number of mini-batches to accumulate before optimizer step')
+parser.add_argument('--dataset_path', type=str, default='', help='Override dataset base path (e.g. node-local copy). Empty = use default /share/klab/datasets/')
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
 parser.add_argument('--name', type=str, default='', help='Optional custom name for the run. Overrides the auto-generated name.')
@@ -126,8 +127,8 @@ args = parser.parse_args()
 ### Importing required packages
 ##################
 
-import torch
-import torch.nn as nn
+import torch # type: ignore
+import torch.nn as nn # type: ignore
 import numpy as np
 import time
 import json
@@ -159,7 +160,7 @@ else:
 hyp = {
     'dataset': {
         'name': args.dataset, # name of the dataset - ecoset/imagenet
-        'dataset_path': '/share/klab/datasets/', # Folder where dataset exists (end with '/')
+        'dataset_path': args.dataset_path if args.dataset_path else '/share/klab/datasets/', # Folder where dataset exists (end with '/')
         'augment': augmenter_train, # Mention augmentations to be used here during training - blurring (always first), trivialaug, autoaugment, randaugment, normalize (always last)
         'augment_val_test': augemnter_val_test, # Mention augmentations to be used here during validation/testing
     },
@@ -555,6 +556,7 @@ if __name__ == '__main__':
             with torch.no_grad():
                 current_acc = np.mean(compute_accuracy(outputs, hard_lbls))
             train_acc_running += current_acc
+            n_timestep_outputs = len(outputs)  # save before del for use after loop
             del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
 
             if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
@@ -617,7 +619,7 @@ if __name__ == '__main__':
         print("DEBUG val_accuracies_all shape so far:", np.array(val_accuracies_all).shape)
 
         # Zusätzlich wie bisher: mean accuracy pro epoch
-        val_losses.append(val_loss_running / len(val_loader) / len(outputs))
+        val_losses.append(val_loss_running / len(val_loader) / n_timestep_outputs)
         val_accuracies.append(float(np.mean(val_acc_ts)))
 
         current_val_acc = val_accuracies[-1]

@@ -60,6 +60,46 @@ nvidia-smi
 cd /share/klab/danthes/lemoehlenkam/BLT-VS || exit 1
 
 # ============================================================
+# Copy EcoSet H5 to node-local storage.
+# NFS page cache is counted against cgroup memory and CANNOT
+# be evicted via posix_fadvise — the only fix is local I/O.
+# ============================================================
+REMOTE_H5="/share/klab/datasets/ecoset_square256_proper_chunks.h5"
+LOCAL_DIR="${TMPDIR:-/tmp}/ecoset_${SLURM_JOB_ID}"
+LOCAL_H5="${LOCAL_DIR}/ecoset_square256_proper_chunks.h5"
+
+# Check available space before copying
+REMOTE_SIZE_KB=$(du -k "$REMOTE_H5" | cut -f1)
+AVAIL_KB=$(df -k "${TMPDIR:-/tmp}" | tail -1 | awk '{print $4}')
+NEED_KB=$((REMOTE_SIZE_KB + 10*1024*1024))  # file size + 10GB headroom
+echo "Local disk (${TMPDIR:-/tmp}): $(( AVAIL_KB / 1024 / 1024 ))GB available, need $(( NEED_KB / 1024 / 1024 ))GB"
+if [ "$AVAIL_KB" -lt "$NEED_KB" ]; then
+    echo "ERROR: Not enough local disk space for H5 copy. Aborting."
+    echo "Consider requesting a node with more /tmp space, or set TMPDIR to a larger local disk."
+    exit 1
+fi
+
+# Clean up local copy when the job exits (success or failure)
+trap "echo 'Cleaning up local data...'; rm -rf ${LOCAL_DIR}" EXIT
+
+mkdir -p "$LOCAL_DIR"
+echo "Copying EcoSet to node-local storage..."
+echo "  From: $REMOTE_H5"
+echo "  To:   $LOCAL_H5"
+cp_start=$(date +%s)
+cp "$REMOTE_H5" "$LOCAL_H5"
+cp_rc=$?
+cp_end=$(date +%s)
+echo "Copy finished in $((cp_end - cp_start))s (exit=$cp_rc)"
+
+if [ $cp_rc -ne 0 ] || [ ! -f "$LOCAL_H5" ]; then
+    echo "ERROR: Failed to copy dataset to local storage. Cannot train."
+    exit 1
+fi
+DATASET_PATH="${LOCAL_DIR}/"
+echo "Using local dataset path: $DATASET_PATH"
+
+# ============================================================
 # Build command from source args.json + overrides
 # ============================================================
 ARGS_JSON="${SOURCE_RUN}/args.json"
@@ -122,6 +162,7 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --name "$NAME" \
     --dataset_mode "$SRC_DATASET_MODE" \
     --dataset "$DATASET" \
+    --dataset_path "$DATASET_PATH" \
     --timesteps "$SRC_TIMESTEPS" \
     --lateral_connections "$SRC_LATERAL" \
     --topdown_connections "$SRC_TOPDOWN" \

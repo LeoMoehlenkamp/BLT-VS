@@ -581,6 +581,7 @@ if __name__ == '__main__':
             train_acc_running += current_acc
             n_timestep_outputs = len(outputs)  # save before del for use after loop
             del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
+            torch.cuda.empty_cache()
 
             if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
                 if args.grad_clipping:
@@ -610,15 +611,33 @@ if __name__ == '__main__':
                     mem_total = torch.cuda.get_device_properties(gpu_i).total_memory / (1024**3)
                     print(f"  [Step {step_idx+1}] GPU {gpu_i}: {mem_used:.1f}/{mem_total:.1f} GB reserved")
 
-            # Log system RAM every 500 batches to track page cache growth
+            # Log process + cgroup memory every 500 batches to track leaks
             if (step_idx + 1) % 500 == 0:
                 try:
-                    with open('/proc/meminfo', 'r') as _mi:
-                        lines = {l.split(':')[0]: l.split(':')[1].strip() for l in _mi}
-                    print(f"  [Step {step_idx+1}] SysRAM: MemFree={lines.get('MemFree','?')}, "
-                          f"Cached={lines.get('Cached','?')}, Buffers={lines.get('Buffers','?')}")
+                    # Process RSS from /proc/self/status
+                    with open('/proc/self/status', 'r') as _ps:
+                        for _line in _ps:
+                            if _line.startswith('VmRSS:'):
+                                _vm_rss = _line.split(':')[1].strip()
+                                break
+                        else:
+                            _vm_rss = '?'
+                    # Cgroup memory usage
+                    _cg_mem = '?'
+                    try:
+                        with open('/proc/self/cgroup', 'r') as _cg:
+                            _cg_path = _cg.read().strip().split('::')[-1]
+                        _cg_mem_path = f'/sys/fs/cgroup{_cg_path}/memory.current'
+                        if os.path.exists(_cg_mem_path):
+                            with open(_cg_mem_path) as _f:
+                                _cg_mem = f'{int(_f.read().strip()) / (1024**3):.1f} GB'
+                    except Exception:
+                        pass
+                    print(f"  [Step {step_idx+1}] ProcessRSS={_vm_rss}, CgroupMem={_cg_mem}")
                 except Exception:
                     pass
+                # Force garbage collection to break reference cycles
+                gc.collect()
 
             # Evict H5 page cache every 50 batches to prevent cgroup OOM
             if (step_idx + 1) % 50 == 0:

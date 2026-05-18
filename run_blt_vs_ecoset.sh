@@ -35,7 +35,7 @@ OVERRIDE_BATCH_SIZE="64"
 OVERRIDE_BATCH_SIZE_VAL_TEST="64"
 OVERRIDE_N_EPOCHS="15"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
-OVERRIDE_NUM_WORKERS="2"
+OVERRIDE_NUM_WORKERS="0"
 
 # --- Environment setup ---
 spack load miniconda3

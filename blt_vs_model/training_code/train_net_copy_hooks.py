@@ -549,7 +549,23 @@ if __name__ == '__main__':
         )
         accum_steps = args.grad_accum_steps
         optimizer.zero_grad()
+
+        def _get_rss_mb():
+            """Get current process RSS in MB from /proc/self/status."""
+            try:
+                with open('/proc/self/status') as f:
+                    for line in f:
+                        if line.startswith('VmRSS:'):
+                            return int(line.split()[1]) / 1024  # kB to MB
+            except Exception:
+                return 0.0
+
         for step_idx, (images, labels) in enumerate(pbar):
+
+            # Per-step RSS tracking (first 20 batches + every 500th)
+            _track_rss = (step_idx < 20) or ((step_idx + 1) % 500 == 0)
+            if _track_rss:
+                _rss_a = _get_rss_mb()
 
             imgs = images.to(hyp['optimizer']['device'])
             lbls = labels.to(hyp['optimizer']['device'])
@@ -559,6 +575,9 @@ if __name__ == '__main__':
             # Move weights to the same device as inputs
             if criterion.weight is not None:
                 criterion.weight = criterion.weight.to(imgs.device)
+
+            if _track_rss:
+                _rss_b = _get_rss_mb()  # after .to(device)
 
             with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=hyp['misc']['use_amp']):
                 outputs = net(imgs)
@@ -571,8 +590,14 @@ if __name__ == '__main__':
                         loss = loss + criterion(outputs[t+1], targets)
                 loss = loss/len(outputs)
                 loss = loss / accum_steps  # scale loss for accumulation
+
+            if _track_rss:
+                _rss_c = _get_rss_mb()  # after forward+loss
             
             scaler.scale(loss).backward()
+
+            if _track_rss:
+                _rss_d = _get_rss_mb()  # after backward
 
             # --- Free computation graph and intermediate tensors immediately ---
             train_loss_running += loss.item() * accum_steps  # undo scaling for logging
@@ -582,6 +607,17 @@ if __name__ == '__main__':
             n_timestep_outputs = len(outputs)  # save before del for use after loop
             del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
             torch.cuda.empty_cache()
+
+            if _track_rss:
+                _rss_e = _get_rss_mb()  # after del + empty_cache
+                # Also count open file descriptors (leak indicator)
+                try:
+                    _fd_count = len(os.listdir('/proc/self/fd'))
+                except Exception:
+                    _fd_count = -1
+                print(f"  [RSS step {step_idx}] start={_rss_a:.0f} to_dev={_rss_b:.0f} "
+                      f"fwd={_rss_c:.0f} bwd={_rss_d:.0f} cleanup={_rss_e:.0f} "
+                      f"delta={_rss_e - _rss_a:.0f} MB  fds={_fd_count}")
 
             if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
                 if args.grad_clipping:
@@ -638,6 +674,21 @@ if __name__ == '__main__':
                     pass
                 # Force garbage collection to break reference cycles
                 gc.collect()
+
+            # At step 50: snapshot large CPU tensors to find accumulating objects
+            if (step_idx + 1) == 50:
+                gc.collect()
+                _cpu_tensors = {}
+                for obj in gc.get_objects():
+                    if torch.is_tensor(obj) and not obj.is_cuda and obj.numel() > 1000:
+                        _shape = tuple(obj.shape)
+                        _dtype = str(obj.dtype)
+                        _key = f"{_shape}_{_dtype}"
+                        _cpu_tensors[_key] = _cpu_tensors.get(_key, 0) + 1
+                print(f"  [Step 50] Large CPU tensors by shape:")
+                for _k, _v in sorted(_cpu_tensors.items(), key=lambda x: -x[1])[:20]:
+                    print(f"    {_k}: count={_v}")
+                del _cpu_tensors
 
             # Evict H5 page cache every 50 batches to prevent cgroup OOM
             if (step_idx + 1) % 50 == 0:

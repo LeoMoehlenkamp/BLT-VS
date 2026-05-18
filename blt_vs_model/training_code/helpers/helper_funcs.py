@@ -411,41 +411,46 @@ def get_Dataset_loaders(hyp, splits):
             train_collate_fn = get_mixup_cutmix_collate_fn(mixup_alpha, cutmix_alpha, hyp['dataset']['n_classes'])
             print(f'Using MixUp(alpha={mixup_alpha}) + CutMix(alpha={cutmix_alpha})')
 
-        train_loader = torch.utils.data.DataLoader(
-            train_data,
+        _num_workers_train = hyp['optimizer']['dataloader']['num_workers_train']
+        _train_dl_kwargs = dict(
             batch_size=hyp['optimizer']['batch_size'],
             shuffle=(train_sampler is None),
             sampler=train_sampler,
-            num_workers=hyp['optimizer']['dataloader']['num_workers_train'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_train'],
+            num_workers=_num_workers_train,
             pin_memory=False,
             persistent_workers=False,
             collate_fn=train_collate_fn
         )
+        if _num_workers_train > 0:
+            _train_dl_kwargs['prefetch_factor'] = hyp['optimizer']['dataloader']['prefetch_factor_train']
+        train_loader = torch.utils.data.DataLoader(train_data, **_train_dl_kwargs)
     else:
         train_loader = None
 
     if 'val' in splits:
-        val_loader = torch.utils.data.DataLoader(
-            val_data,
+        _num_workers_vt = hyp['optimizer']['dataloader']['num_workers_val_test']
+        _val_dl_kwargs = dict(
             batch_size=hyp['misc']['batch_size_val_test'],
-            num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
+            num_workers=_num_workers_vt,
             pin_memory=False,
             persistent_workers=False
         )
+        if _num_workers_vt > 0:
+            _val_dl_kwargs['prefetch_factor'] = hyp['optimizer']['dataloader']['prefetch_factor_val_test']
+        val_loader = torch.utils.data.DataLoader(val_data, **_val_dl_kwargs)
     else:
         val_loader = None
 
     if 'test' in splits:
-        test_loader = torch.utils.data.DataLoader(
-            test_data,
+        _test_dl_kwargs = dict(
             batch_size=hyp['misc']['batch_size_val_test'],
-            num_workers=hyp['optimizer']['dataloader']['num_workers_val_test'],
-            prefetch_factor=hyp['optimizer']['dataloader']['prefetch_factor_val_test'],
+            num_workers=_num_workers_vt,
             pin_memory=False,
             persistent_workers=False
         )
+        if _num_workers_vt > 0:
+            _test_dl_kwargs['prefetch_factor'] = hyp['optimizer']['dataloader']['prefetch_factor_val_test']
+        test_loader = torch.utils.data.DataLoader(test_data, **_test_dl_kwargs)
     else:
         test_loader = None
 

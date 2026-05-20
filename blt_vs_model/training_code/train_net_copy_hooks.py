@@ -618,6 +618,12 @@ if __name__ == '__main__':
             del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
             torch.cuda.empty_cache()
 
+            # Force glibc to return freed heap pages to the OS every step.
+            # h5py + numpy allocate ~50 MB of temp buffers per batch;
+            # Python free()s them, but glibc keeps pages mapped unless trimmed.
+            if _has_malloc_trim:
+                _libc.malloc_trim(0)
+
             if _track_rss:
                 _rss_e = _get_rss_mb()  # after del + empty_cache
                 # Also count open file descriptors (leak indicator)
@@ -703,11 +709,6 @@ if __name__ == '__main__':
             # Evict H5 page cache every 50 batches to prevent cgroup OOM
             if (step_idx + 1) % 50 == 0:
                 evict_h5_page_cache()
-                # Force glibc to return freed heap pages to the OS.
-                # h5py + numpy allocate ~50 MB of temp buffers per batch;
-                # Python free()s them, but glibc keeps the pages mapped.
-                if _has_malloc_trim:
-                    _libc.malloc_trim(0)
 
             if epoch_running_init_flag == 0:
                 epoch_running_init_flag = 1

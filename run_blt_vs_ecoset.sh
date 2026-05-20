@@ -46,6 +46,9 @@ eval "$(conda shell.bash hook)"
 
 export NCCL_SOCKET_IFNAME=lo
 export HDF5_USE_FILE_LOCKING=FALSE
+# Force glibc to return freed heap memory to the OS immediately.
+# Without this, repeated h5py reads cause RSS to grow ~55 MB/step.
+export MALLOC_TRIM_THRESHOLD_=0
 mkdir -p logs
 
 source ~/startup_conda.sh

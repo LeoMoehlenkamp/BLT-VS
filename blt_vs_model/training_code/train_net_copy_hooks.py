@@ -136,6 +136,16 @@ import inspect
 from helpers.helper_funcs import get_Dataset_loaders, create_folders_logging, LinearFitScheduler, compute_first_signal
 from models.helper_funcs import get_network_model, get_optimizer, eval_network, compute_accuracy, adaptive_gradient_clipping, calculate_flops
 import gc
+import ctypes
+
+# Force glibc to return freed heap memory to the OS.
+# Without this, malloc keeps freed pages in its free-lists and RSS
+# grows ~55 MB/step until the cgroup OOM killer fires.
+try:
+    _libc = ctypes.CDLL("libc.so.6")
+    _has_malloc_trim = hasattr(_libc, 'malloc_trim')
+except OSError:
+    _has_malloc_trim = False
 
 ##################
 ### Listing all hyperparameters
@@ -693,6 +703,11 @@ if __name__ == '__main__':
             # Evict H5 page cache every 50 batches to prevent cgroup OOM
             if (step_idx + 1) % 50 == 0:
                 evict_h5_page_cache()
+                # Force glibc to return freed heap pages to the OS.
+                # h5py + numpy allocate ~50 MB of temp buffers per batch;
+                # Python free()s them, but glibc keeps the pages mapped.
+                if _has_malloc_trim:
+                    _libc.malloc_trim(0)
 
             if epoch_running_init_flag == 0:
                 epoch_running_init_flag = 1

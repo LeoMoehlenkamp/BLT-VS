@@ -47,12 +47,14 @@ eval "$(conda shell.bash hook)"
 export NCCL_SOCKET_IFNAME=lo
 export HDF5_USE_FILE_LOCKING=FALSE
 # Force glibc to return freed heap memory to the OS immediately.
-# Without this, repeated h5py reads cause RSS to grow ~55 MB/step.
 export MALLOC_TRIM_THRESHOLD_=0
 # Force allocations >= 64 KB to use mmap instead of sbrk arena.
-# mmap'd pages are returned to the OS immediately on free(),
-# preventing heap fragmentation from trapping freed memory.
 export MALLOC_MMAP_THRESHOLD_=65536
+# Use a single GPU.  nn.DataParallel replicates the entire module
+# graph in C++ memory every forward pass, leaking ~47 MB/step that
+# neither gc.collect() nor malloc_trim can reclaim.  The model only
+# uses 0.2 GB GPU; DataParallel adds overhead with no benefit.
+export CUDA_VISIBLE_DEVICES=0
 mkdir -p logs
 
 source ~/startup_conda.sh

@@ -49,6 +49,10 @@ export HDF5_USE_FILE_LOCKING=FALSE
 # Force glibc to return freed heap memory to the OS immediately.
 # Without this, repeated h5py reads cause RSS to grow ~55 MB/step.
 export MALLOC_TRIM_THRESHOLD_=0
+# Force allocations >= 64 KB to use mmap instead of sbrk arena.
+# mmap'd pages are returned to the OS immediately on free(),
+# preventing heap fragmentation from trapping freed memory.
+export MALLOC_MMAP_THRESHOLD_=65536
 mkdir -p logs
 
 source ~/startup_conda.sh

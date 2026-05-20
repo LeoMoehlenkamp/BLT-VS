@@ -618,9 +618,12 @@ if __name__ == '__main__':
             del outputs, loss, imgs, lbls, targets, hard_lbls, images, labels
             torch.cuda.empty_cache()
 
+            # Break reference cycles (DataParallel scatter/gather + autograd
+            # graph can create cycles that prevent Python refcounting from
+            # freeing the computation graph).
+            gc.collect()
+
             # Force glibc to return freed heap pages to the OS every step.
-            # h5py + numpy allocate ~50 MB of temp buffers per batch;
-            # Python free()s them, but glibc keeps pages mapped unless trimmed.
             if _has_malloc_trim:
                 _libc.malloc_trim(0)
 
@@ -709,6 +712,17 @@ if __name__ == '__main__':
             # Evict H5 page cache every 50 batches to prevent cgroup OOM
             if (step_idx + 1) % 50 == 0:
                 evict_h5_page_cache()
+
+            # Close and reopen the HDF5 file every 100 steps to flush the
+            # HDF5 library's internal metadata cache, which can grow without
+            # bound under random-access patterns.
+            if (step_idx + 1) % 100 == 0:
+                _dataset = train_loader.dataset
+                if hasattr(_dataset, '_h5_file') and _dataset._h5_file is not None:
+                    _dataset._h5_file.close()
+                    _dataset._h5_file = None
+                    _dataset.images = None
+                    _dataset.labels = None
 
             if epoch_running_init_flag == 0:
                 epoch_running_init_flag = 1

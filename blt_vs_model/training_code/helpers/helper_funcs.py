@@ -442,6 +442,7 @@ def get_Dataset_loaders(hyp, splits):
         val_loader = None
 
     if 'test' in splits:
+        _num_workers_vt = hyp['optimizer']['dataloader']['num_workers_val_test']
         _test_dl_kwargs = dict(
             batch_size=hyp['misc']['batch_size_val_test'],
             num_workers=_num_workers_vt,

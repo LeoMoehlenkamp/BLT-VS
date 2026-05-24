@@ -24,7 +24,7 @@
 # ============================================================
 
 # --- SOURCE: which previous run to inherit from ---
-SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846"
+SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
 
 # --- OVERRIDES: only list what you want to change ---
 # These will replace the corresponding values from args.json.
@@ -36,6 +36,13 @@ OVERRIDE_BATCH_SIZE_VAL_TEST="256"
 OVERRIDE_N_EPOCHS="35"
 OVERRIDE_LEARNING_RATE=""       # empty = keep from source
 OVERRIDE_NUM_WORKERS="4"
+
+# --- Regularization & augmentation ---
+OVERRIDE_WEIGHT_DECAY="0.05"        # AdamW regularization
+OVERRIDE_LR_SCHEDULER="cosine"      # cosine annealing (replaces linearfit)
+OVERRIDE_WARMUP_EPOCHS="5"          # linear warmup before cosine decay
+OVERRIDE_MIXUP="0.2"                # MixUp alpha
+OVERRIDE_CUTMIX="1.0"               # CutMix alpha
 
 # --- Environment setup ---
 spack load miniconda3
@@ -154,7 +161,12 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --learning_rate "$LR" \
     --num_workers "$NUM_WORKERS" \
     --grad_clipping "$SRC_GRAD_CLIP" \
-    --grad_accum_steps 1
+    --grad_accum_steps 1 \
+    --weight_decay ${OVERRIDE_WEIGHT_DECAY:-0.0} \
+    --lr_scheduler_type ${OVERRIDE_LR_SCHEDULER:-linearfit} \
+    --warmup_epochs ${OVERRIDE_WARMUP_EPOCHS:-5} \
+    --use_mixup ${OVERRIDE_MIXUP:-0.0} \
+    --use_cutmix ${OVERRIDE_CUTMIX:-0.0}
 
 echo "====================================="
 echo "Finished: $(date)"

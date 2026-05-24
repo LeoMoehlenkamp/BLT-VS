@@ -2,9 +2,6 @@
 Standalone plot generation from saved training metrics (.npz).
 Reproduces all plots that train_net_copy_hooks.py creates after training.
 No GPU, no model, no dataset needed — only the .npz file.
-
-Usage:
-    python generate_plots.py
 """
 
 import os
@@ -16,16 +13,15 @@ from matplotlib.ticker import MaxNLocator
 import pandas as pd
 
 # ============================================================
-# Configuration — adjust these if needed
+# Configuration — SET THIS PATH
 # ============================================================
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-NET_NAME = os.path.basename(SCRIPT_DIR)
-LOSS_FILE = os.path.join(SCRIPT_DIR, f"loss_{NET_NAME}.npz")
-PCA_FILE = os.path.join(SCRIPT_DIR, "pca_results_streaming.npz")
-OUT_DIR = SCRIPT_DIR
+LOSS_FILE = r"C:\Users\moehl\Logs\temp\blt_vs_bottleneck__ecoset__ts12__bnnone_BU__20260522_041817\loss_blt_vs_bottleneck__ecoset__ts12__bnnone_BU__20260522_041817.npz"
 
-TIMESTEPS = 12  # from config.json
+OUT_DIR = os.path.dirname(LOSS_FILE)
+PCA_FILE = os.path.join(OUT_DIR, "pca_results_streaming.npz")
+
+TIMESTEPS = 12
 
 # ============================================================
 # Load data

@@ -232,19 +232,12 @@ else:
 hyp["ecoset_debug_subset"] = args.ecoset_debug_subset
 hyp["ecoset_debug_size"] = args.ecoset_debug_size
 
-# Only enable MixUp/CutMix/RA for rn50 — BLT-VS training is unaffected
-if args.network == 'rn50':
-    hyp['augmentation'] = {
-        'mixup_alpha': args.use_mixup,
-        'cutmix_alpha': args.use_cutmix,
-        'ra_reps': args.ra_reps,
-    }
-else:
-    hyp['augmentation'] = {
-        'mixup_alpha': 0.0,
-        'cutmix_alpha': 0.0,
-        'ra_reps': 0,
-    }
+# MixUp/CutMix/RA augmentation (works for any network)
+hyp['augmentation'] = {
+    'mixup_alpha': args.use_mixup,
+    'cutmix_alpha': args.use_cutmix,
+    'ra_reps': args.ra_reps,
+}
 # -----------------------------
 # Modular bottlenecks config
 # -----------------------------
@@ -432,9 +425,9 @@ if __name__ == '__main__':
     optimizer = get_optimizer(hyp,net)
     scaler = torch.amp.GradScaler("cuda", enabled=hyp['misc']['use_amp']) # this is in service of mixed precision training
 
-    # --- EMA model (rn50 only) ---
+    # --- EMA model ---
     ema_model = None
-    if args.use_ema and args.network == 'rn50':
+    if args.use_ema:
         from copy import deepcopy
         ema_model = deepcopy(net)
         ema_model.eval()
@@ -443,7 +436,7 @@ if __name__ == '__main__':
         print(f'Using EMA with decay={ema_decay}')
 
     # --- LR Scheduler ---
-    if args.lr_scheduler_type == 'cosine' and args.network == 'rn50':
+    if args.lr_scheduler_type == 'cosine':
         # Cosine annealing after warmup
         total_epochs = hyp['optimizer']['n_epochs']
         warmup_epochs = args.warmup_epochs

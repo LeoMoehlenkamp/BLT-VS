@@ -24,13 +24,13 @@
 # ============================================================
 
 # --- SOURCE: which previous run to inherit from ---
-SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
+SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
 
 # --- OVERRIDES: only list what you want to change ---
 # These will replace the corresponding values from args.json.
 # Leave empty ("") to keep the original value.
 OVERRIDE_DATASET="ecoset"
-OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bnnone_BU"
+OVERRIDE_NAME="blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip"
 OVERRIDE_BATCH_SIZE="256"
 OVERRIDE_BATCH_SIZE_VAL_TEST="256"
 OVERRIDE_N_EPOCHS="20"

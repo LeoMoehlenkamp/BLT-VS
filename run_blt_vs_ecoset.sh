@@ -38,11 +38,12 @@ OVERRIDE_LEARNING_RATE=""       # empty = keep from source
 OVERRIDE_NUM_WORKERS="4"
 
 # --- Regularization & augmentation ---
-OVERRIDE_WEIGHT_DECAY="0.05"        # AdamW regularization
-OVERRIDE_LR_SCHEDULER="cosine"      # cosine annealing (replaces linearfit)
+OVERRIDE_WEIGHT_DECAY="0.01"        # AdamW regularization (reduced from 0.05, too aggressive)
+OVERRIDE_LR_SCHEDULER="linearfit"   # LinearFit scheduler (cosine caused NaN, disabled for now)
 OVERRIDE_WARMUP_EPOCHS="5"          # linear warmup before cosine decay
-OVERRIDE_MIXUP="0.2"                # MixUp alpha
-OVERRIDE_CUTMIX="1.0"               # CutMix alpha
+OVERRIDE_MIXUP="0.0"                # MixUp alpha (disabled, gates still in place for BLT-VS)
+OVERRIDE_CUTMIX="0.0"               # CutMix alpha (disabled, too aggressive with cosine)
+OVERRIDE_GRAD_CHECK="1"             # Enable gradient checkpointing to save GPU memory
 
 # --- Environment setup ---
 spack load miniconda3
@@ -166,7 +167,8 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --lr_scheduler_type ${OVERRIDE_LR_SCHEDULER:-linearfit} \
     --warmup_epochs ${OVERRIDE_WARMUP_EPOCHS:-5} \
     --use_mixup ${OVERRIDE_MIXUP:-0.0} \
-    --use_cutmix ${OVERRIDE_CUTMIX:-0.0}
+    --use_cutmix ${OVERRIDE_CUTMIX:-0.0} \
+    --gradient_checkpointing ${OVERRIDE_GRAD_CHECK:-0}
 
 echo "====================================="
 echo "Finished: $(date)"

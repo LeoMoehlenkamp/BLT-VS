@@ -1481,4 +1481,7 @@ if __name__ == '__main__':
     else:
         print("Skipping plot saving (debug dataset mode).")
 
-    
+    print("\n" + "="*60)
+    print(f"Training completed! Results saved to:")
+    print(f"  {log_path}")
+    print("="*60 + "\n")

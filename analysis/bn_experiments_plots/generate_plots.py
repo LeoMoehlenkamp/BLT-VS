@@ -16,7 +16,7 @@ import pandas as pd
 # Configuration — SET THIS PATH
 # ============================================================
 
-LOSS_FILE = r"C:\Users\moehl\Logs\temp\blt_vs_bottleneck__ecoset__ts12__bnnone_BU__20260522_041817\loss_blt_vs_bottleneck__ecoset__ts12__bnnone_BU__20260522_041817.npz"
+LOSS_FILE = r"C:\Users\moehl\Logs\temp\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\loss_blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143.npz"
 
 OUT_DIR = os.path.dirname(LOSS_FILE)
 PCA_FILE = os.path.join(OUT_DIR, "pca_results_streaming.npz")

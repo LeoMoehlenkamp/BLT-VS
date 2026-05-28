@@ -636,141 +636,140 @@ class BLT_VS(nn.Module):
         # Return possibly updated activation dictionary
         return activations
 
-def collect_activation(
-    self, bu_activation, td_activation, bu_flag, td_flag, concat, area_idx, batch_size
-):
-    """
-    Helper function to collect activations, handling None values and concatenation.
+    def collect_activation(
+        self, bu_activation, td_activation, bu_flag, td_flag, concat, area_idx, batch_size
+    ):
+        """
+        Helper function to collect activations, handling None values and concatenation.
 
-    Parameters:
-    -----------
-    bu_activation : torch.Tensor or None
-        Bottom-up activation.
-    td_activation : torch.Tensor or None
-        Top-down activation.
-    bu_flag : bool
-        Whether to collect BU activations.
-    td_flag : bool
-        Whether to collect TD activations.
-    concat : bool
-        Whether to concatenate BU and TD activations.
-    area_idx : int
-        Index of the area in self.areas.
-    batch_size : int
-        Batch size of the input data.
+        Parameters:
+        -----------
+        bu_activation : torch.Tensor or None
+            Bottom-up activation.
+        td_activation : torch.Tensor or None
+            Top-down activation.
+        bu_flag : bool
+            Whether to collect BU activations.
+        td_flag : bool
+            Whether to collect TD activations.
+        concat : bool
+            Whether to concatenate BU and TD activations.
+        area_idx : int
+            Index of the area in self.areas.
+        batch_size : int
+            Batch size of the input data.
 
-    Returns:
-    --------
-    activation : torch.Tensor or dict
-        The collected activation. If concat is True, returns a single tensor.
-        If concat is False, returns a dict with keys 'bu' and/or 'td'.
+        Returns:
+        --------
+        activation : torch.Tensor or dict
+            The collected activation. If concat is True, returns a single tensor.
+            If concat is False, returns a dict with keys 'bu' and/or 'td'.
 
-    Why this is needed:
-    -------------------
-    During recurrent computation, some areas may not yet have valid
-    bottom-up or top-down activations (they may be None).
-    This function guarantees that activation extraction never crashes
-    by safely replacing missing activations with zero tensors of the
-    correct shape. It also standardizes how BU and TD activations are
-    returned (either concatenated or separate), ensuring consistent
-    behavior for analysis and visualization.
-    """
+        Why this is needed:
+        -------------------
+        During recurrent computation, some areas may not yet have valid
+        bottom-up or top-down activations (they may be None).
+        This function guarantees that activation extraction never crashes
+        by safely replacing missing activations with zero tensors of the
+        correct shape. It also standardizes how BU and TD activations are
+        returned (either concatenated or separate), ensuring consistent
+        behavior for analysis and visualization.
+        """
 
-    # Determine the device (CPU or GPU) where the model parameters live
-    # This ensures created zero tensors are placed on the correct device
-    device = next(self.parameters()).device  
+        # Determine the device (CPU or GPU) where the model parameters live
+        # This ensures created zero tensors are placed on the correct device
+        device = next(self.parameters()).device
 
-    # ======================================================
-    # CONCAT MODE (Return a single tensor)
-    # ======================================================
-    if concat:
+        # ======================================================
+        # CONCAT MODE (Return a single tensor)
+        # ======================================================
+        if concat:
 
-        # Case 1: Both BU and TD are None
-        # → create a zero tensor with correct spatial and channel size
-        if bu_activation is None and td_activation is None:
+            # Case 1: Both BU and TD are None
+            # → create a zero tensor with correct spatial and channel size
+            if bu_activation is None and td_activation is None:
 
-            # Channel size doubled because we concatenate BU and TD
-            channels = self.channel_sizes[area_idx] * 2  
+                # Channel size doubled because we concatenate BU and TD
+                channels = self.channel_sizes[area_idx] * 2
 
-            # Get spatial resolution for this area
-            height, width = self.output_shapes[area_idx]
-
-            # Create zero tensor of expected shape
-            zeros = torch.zeros(
-                (batch_size, channels, height, width),
-                device=device
-            )
-            return zeros
-
-        # Case 2: BU is missing → replace with zeros shaped like TD
-        if bu_activation is None:
-            bu_activation = torch.zeros_like(td_activation)
-
-        # Case 3: TD is missing → replace with zeros shaped like BU
-        if td_activation is None:
-            td_activation = torch.zeros_like(bu_activation)
-
-        # Concatenate along channel dimension (dim=1)
-        activation = torch.cat([bu_activation, td_activation], dim=1)
-
-        return activation
-
-    # ======================================================
-    # SEPARATE MODE (Return dictionary with 'bu' and/or 'td')
-    # ======================================================
-    else:
-
-        activation = {}
-
-        # ---------------------------
-        # Handle Bottom-Up (BU)
-        # ---------------------------
-        if bu_flag:
-
-            # If BU exists, use it directly
-            if bu_activation is not None:
-                activation['bu'] = bu_activation
-
-            # If BU is missing but TD exists,
-            # create zero tensor shaped like TD
-            elif td_activation is not None:
-                activation['bu'] = torch.zeros_like(td_activation)
-
-            # If both are None → create zero tensor from scratch
-            else:
-                channels = self.channel_sizes[area_idx]
+                # Get spatial resolution for this area
                 height, width = self.output_shapes[area_idx]
 
-                activation['bu'] = torch.zeros(
+                # Create zero tensor of expected shape
+                zeros = torch.zeros(
                     (batch_size, channels, height, width),
                     device=device
                 )
+                return zeros
 
-        # ---------------------------
-        # Handle Top-Down (TD)
-        # ---------------------------
-        if td_flag:
+            # Case 2: BU is missing → replace with zeros shaped like TD
+            if bu_activation is None:
+                bu_activation = torch.zeros_like(td_activation)
 
-            # If TD exists, use it directly
-            if td_activation is not None:
-                activation['td'] = td_activation
+            # Case 3: TD is missing → replace with zeros shaped like BU
+            if td_activation is None:
+                td_activation = torch.zeros_like(bu_activation)
 
-            # If TD missing but BU exists → create zero tensor shaped like BU
-            elif bu_activation is not None:
-                activation['td'] = torch.zeros_like(bu_activation)
+            # Concatenate along channel dimension (dim=1)
+            activation = torch.cat([bu_activation, td_activation], dim=1)
 
-            # If both are None → create zero tensor from scratch
-            else:
-                channels = self.channel_sizes[area_idx]
-                height, width = self.output_shapes[area_idx]
+            return activation
 
-                activation['td'] = torch.zeros(
-                    (batch_size, channels, height, width),
-                    device=device
-                )
+        # ======================================================
+        # SEPARATE MODE (Return dictionary with 'bu' and/or 'td')
+        # ======================================================
+        else:
 
-        return activation
+            activation = {}
 
+            # ---------------------------
+            # Handle Bottom-Up (BU)
+            # ---------------------------
+            if bu_flag:
+
+                # If BU exists, use it directly
+                if bu_activation is not None:
+                    activation['bu'] = bu_activation
+
+                # If BU is missing but TD exists,
+                # create zero tensor shaped like TD
+                elif td_activation is not None:
+                    activation['bu'] = torch.zeros_like(td_activation)
+
+                # If both are None → create zero tensor from scratch
+                else:
+                    channels = self.channel_sizes[area_idx]
+                    height, width = self.output_shapes[area_idx]
+
+                    activation['bu'] = torch.zeros(
+                        (batch_size, channels, height, width),
+                        device=device
+                    )
+
+            # ---------------------------
+            # Handle Top-Down (TD)
+            # ---------------------------
+            if td_flag:
+
+                # If TD exists, use it directly
+                if td_activation is not None:
+                    activation['td'] = td_activation
+
+                # If TD missing but BU exists → create zero tensor shaped like BU
+                elif bu_activation is not None:
+                    activation['td'] = torch.zeros_like(bu_activation)
+
+                # If both are None → create zero tensor from scratch
+                else:
+                    channels = self.channel_sizes[area_idx]
+                    height, width = self.output_shapes[area_idx]
+
+                    activation['td'] = torch.zeros(
+                        (batch_size, channels, height, width),
+                        device=device
+                    )
+
+            return activation
 
 
 class BLT_VS_Layer(nn.Module):

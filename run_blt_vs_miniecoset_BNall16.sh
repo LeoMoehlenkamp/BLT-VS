@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=klab-gpu
-#SBATCH -w klab-1
+#SBATCH -w klab-7
 #SBATCH --nodes=1
-#SBATCH -c 12
-#SBATCH --mem=16G
+#SBATCH -c 16
+#SBATCH --mem=80G
 #SBATCH --gres=gpu:1
 #SBATCH --time=24:00:00
 #SBATCH --job-name=BNall16

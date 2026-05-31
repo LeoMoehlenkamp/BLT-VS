@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --partition=klab-gpu
-#SBATCH -w klab-1
+#SBATCH -w klab-7
 #SBATCH --nodes=1
-#SBATCH -c 12
-#SBATCH --mem=16G
+#SBATCH -c 16
+#SBATCH --mem=80G
 #SBATCH --gres=gpu:1
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --job-name=BNall32
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
@@ -49,13 +49,11 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --topdown_connections 1 \
     --skip_connections 1 \
     --bio_unroll 1 \
-    --batch_size 32 \
-    --batch_size_val_test 32 \
+    --batch_size 64 \
+    --batch_size_val_test 64 \
     --n_epochs 60 \
     --learning_rate 7.5e-4 \
     --num_workers 4 \
-    --gradient_checkpointing 1 \
-    --grad_accum_steps 2 \
     2>&1 | tee "$TRAIN_LOG"
 
 echo "-------------------------------------"

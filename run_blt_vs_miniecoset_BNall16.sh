@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=klab-gpu
-#SBATCH -w klab-7
+#SBATCH -w klab-1
 #SBATCH --nodes=1
 #SBATCH -c 16
 #SBATCH --mem=80G

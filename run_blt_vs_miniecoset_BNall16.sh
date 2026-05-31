@@ -17,6 +17,7 @@ spack load cudnn@8.6.0.163-11.8
 eval "$(conda shell.bash hook)"
 
 export NCCL_SOCKET_IFNAME=lo
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 mkdir -p logs
 
 # Activate Conda
@@ -49,8 +50,8 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --topdown_connections 1 \
     --skip_connections 1 \
     --bio_unroll 1 \
-    --batch_size 64 \
-    --batch_size_val_test 64 \
+    --batch_size 32 \
+    --batch_size_val_test 32 \
     --n_epochs 60 \
     --learning_rate 7.5e-4 \
     --num_workers 4 \

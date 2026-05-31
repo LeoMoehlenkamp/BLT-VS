@@ -21,17 +21,13 @@ train_loss = data['train_loss']
 val_loss = data['val_loss']
 train_acc = data['train_accuracies']
 val_acc = data['val_accuracies']
-val_acc_all = data['val_accuracies_all']
+val_acc_all = data['val_accuracies_all'] if 'val_accuracies_all' in data.files else None
+print(f"Available keys: {list(data.files)}")
 
 n_epochs = len(train_loss)
 epochs = np.arange(1, n_epochs + 1)
 
-# The Exp/final copy has 62 epochs — mark where original training ended
-resume_epoch = 62
-
 print(f"Total logged epochs: {n_epochs}")
-print(f"Original training: 1-{resume_epoch}, Resumed: {resume_epoch+1}-{n_epochs}")
-print(f"Configured n_epochs per run: 40 (implied ~{n_epochs} total across runs)")
 
 # ============================
 # Compute best values
@@ -59,7 +55,6 @@ plt.plot(epochs, val_acc, label="Validation Accuracy")
 
 plt.scatter(best_val_epoch, best_val_acc, color='red', zorder=5)
 plt.axvline(best_val_epoch, linestyle='--', alpha=0.5, color='red')
-plt.axvline(resume_epoch, linestyle=':', alpha=0.4, color='gray', label=f"Resume point (epoch {resume_epoch})")
 
 gap = train_acc_at_best - best_val_acc
 plt.annotate(
@@ -89,7 +84,6 @@ plt.plot(epochs, val_loss, label="Validation Loss")
 
 plt.scatter(best_loss_epoch, best_val_loss, color='green', zorder=5)
 plt.axvline(best_loss_epoch, linestyle='--', alpha=0.5, color='green')
-plt.axvline(resume_epoch, linestyle=':', alpha=0.4, color='gray', label=f"Resume point (epoch {resume_epoch})")
 
 plt.annotate(
     f"Lowest Val Loss: {best_val_loss:.4f}\nEpoch {best_loss_epoch}",
@@ -146,7 +140,7 @@ print(f"Saved: {out_table}")
 # ============================
 # TIMESTEP ACCURACY (Best Epoch)
 # ============================
-if val_acc_all.shape[0] > 0:
+if val_acc_all is not None and val_acc_all.shape[0] > 0:
     best_idx = int(np.argmax(val_acc))
     ts_acc = val_acc_all[best_idx]
     timesteps = np.arange(1, len(ts_acc) + 1)

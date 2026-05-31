@@ -54,6 +54,8 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --n_epochs 60 \
     --learning_rate 7.5e-4 \
     --num_workers 4 \
+    --gradient_checkpointing 1 \
+    --grad_accum_steps 2 \
     2>&1 | tee "$TRAIN_LOG"
 
 echo "-------------------------------------"

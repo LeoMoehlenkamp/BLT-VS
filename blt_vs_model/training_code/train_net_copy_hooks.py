@@ -221,8 +221,10 @@ elif hyp["dataset_mode"] == 1:
 # --- set num_classes based on dataset ---
 if hyp["dataset"]["name"] == "cifar100":
     hyp["dataset"]["n_classes"] = 100
-elif hyp["dataset"]["name"] in ["ecoset", "miniecoset"]:
+elif hyp["dataset"]["name"] == "ecoset":
     hyp["dataset"]["n_classes"] = 565
+elif hyp["dataset"]["name"] == "miniecoset":
+    hyp["dataset"]["n_classes"] = 100
 elif hyp["dataset"]["name"] == "debug":
     # FakeData: n_classes muss zu deinem FakeData passen (z.B. 10 oder 100)
     hyp["dataset"]["n_classes"] = 100

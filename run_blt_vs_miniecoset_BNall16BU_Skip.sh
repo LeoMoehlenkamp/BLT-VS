@@ -41,7 +41,7 @@ TRAIN_LOG=$(mktemp)
 
 python blt_vs_model/training_code/train_net_copy_hooks.py \
     --network blt_vs_bottleneck \
-    --bottlenecks "V1->V2:16,V2->V3:16,V3->V4:16,V4->LOC:16,V1->LGN_td:16,V2->V1_td:16,V3->V2_td:16,V4->V3_td:16,LOC->V4_td:16,V1->V4_skip:16,V4->V1_skip:16" \
+    --bottlenecks "V1->V2:16,V2->V3:16,V3->V4:16,V4->LOC:16,V1->V4_skip:16,V4->V1_skip:16" \
     --name "blt_vs_bottleneck__miniecoset__ts12__bnall16_BU-Skip" \
     --dataset_mode 0 \
     --dataset miniecoset \

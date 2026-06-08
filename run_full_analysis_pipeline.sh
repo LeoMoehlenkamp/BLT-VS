@@ -13,7 +13,7 @@
 # =============================================
 # CONFIGURE HERE
 # =============================================
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415"
 USE_BEST=1
 BATCH_SIZE=32
 PLOT_PANELS=1

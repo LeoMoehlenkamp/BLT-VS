@@ -21,15 +21,17 @@ from matplotlib.ticker import MaxNLocator
 
 # Each entry: (path_to_log_dir, display_name)
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800", "BN-none-BU"),
-    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BN-none-BU-Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BN-none-BU-Skip-TD"),
-    # Add more models here...
+    (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800", "BNnone_BU"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846", "BNV1V2_BU_12"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNV2V3_BU\BNV2V3_BU_8\blt_vs_bottleneck__miniecoset__ts12__bn-V2V3-8__20260329_132907", "BNV2V3_BU_8"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNall_BU\bnall64_BU\blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-64_LGNV1-64_V1V2-64_V2V3-64_V3V4-64_V4LOC-64__20260406_113212", "BNall_BU_64"),
 ]
 
 OUTPUT_PATH = r"C:\Users\moehl\Logs\temp\comparison_best_epoch"
 OUTPUT_PATH_GAIN = r"C:\Users\moehl\Logs\temp\comparison_best_epoch_normalized"
 USE_LAST_EPOCH = False  # True = last epoch, False = best epoch
+
+COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51"]
 
 
 def find_npz(log_dir):
@@ -95,10 +97,11 @@ def main():
 
     # --- Plot 1: Absolute accuracy ---
     plt.figure(figsize=(9, 5))
-    for name, ts_acc, epoch, mean_acc in model_curves:
+    for i, (name, ts_acc, epoch, mean_acc) in enumerate(model_curves):
         timesteps = np.arange(1, len(ts_acc) + 1)
         label = f"{name} (ep{epoch}, mean={mean_acc:.1f}%)"
-        plt.plot(timesteps, ts_acc, marker="o", label=label)
+        plt.plot(timesteps, ts_acc, marker="o", label=label,
+                 color=COLORS[i % len(COLORS)])
 
     plt.xlabel("Timestep")
     plt.ylabel("Validation Accuracy (%)")
@@ -113,12 +116,13 @@ def main():
 
     # --- Plot 2: Recurrence gain (normalized to t1=0) ---
     plt.figure(figsize=(9, 5))
-    for name, ts_acc, epoch, mean_acc in model_curves:
+    for i, (name, ts_acc, epoch, mean_acc) in enumerate(model_curves):
         timesteps = np.arange(1, len(ts_acc) + 1)
         gain = ts_acc - ts_acc[0]
         total_gain = gain[-1]
         label = f"{name} (t1={ts_acc[0]:.1f}%, +{total_gain:.1f}pp)"
-        plt.plot(timesteps, gain, marker="o", label=label)
+        plt.plot(timesteps, gain, marker="o", label=label,
+                 color=COLORS[i % len(COLORS)])
 
     plt.xlabel("Timestep")
     plt.ylabel("Accuracy gain over t1 (pp)")

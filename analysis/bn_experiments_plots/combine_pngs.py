@@ -17,7 +17,7 @@ import matplotlib.image as mpimg
 PANELS = [
     (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_ann_rdms__time_time_spearman__cosine_ranked\all_areas_time_time_spearman.png", "BNnone_BU"),
     (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_192\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444_cosine_ranked_spearman\overview.png", "BNV1V2_BU_192"),
-    (r"C:\Users\moehl\Logs\Plots_BA\rdm3.png", "BNV1V2_BU_32"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_32\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415_cosine_ranked_spearman\overview.png", "BNV1V2_BU_32"),
     (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_ann_rdms__time_time_spearman__cosine_ranked\all_areas_time_time_spearman.png", "BNV1V2_BU_12"),
 ]
 
@@ -39,18 +39,21 @@ if not images:
     exit(1)
 
 n = len(images)
-fig, axes = plt.subplots(n, 1, figsize=(12, 6 * n))
+
+# Compute height ratios from actual image aspect ratios
+ratios = [img.shape[0] / img.shape[1] for img, _ in images]
+fig, axes = plt.subplots(n, 1, figsize=(12, sum(r * 12 for r in ratios)),
+                         gridspec_kw={"hspace": 0.30})
 
 if n == 1:
     axes = [axes]
 
 for ax, (img, title) in zip(axes, images):
     ax.imshow(img)
-    ax.set_title(title, fontsize=14, fontweight="bold", pad=10)
+    ax.set_title(title, fontsize=10, fontweight="bold", pad=2)
     ax.axis("off")
 
-plt.tight_layout()
 os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
-plt.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
+plt.savefig(SAVE_PATH, dpi=300, bbox_inches="tight", pad_inches=0.1)
 print(f"Saved: {SAVE_PATH}")
 plt.close()

@@ -16,9 +16,9 @@ import matplotlib.image as mpimg
 
 PANELS = [
     (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800_cosine_ranked_spearman\overview.png", "BNnone_BU"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_192\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444_cosine_ranked_spearman\overview.png", "BNV1V2_BU_192"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_32\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415_cosine_ranked_spearman\overview.png", "BNV1V2_BU_32"),
     (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846_cosine_ranked_spearman\overview.png", "BNV1V2_BU_12"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNV2V3_BU\BNV2V3_BU_8\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-V2V3-8__20260329_132907_cosine_ranked_spearman\overview.png", "BNV2V3_BU_8"),
+    (r"C:\Users\moehl\Logs\Final\BU\BNall_BU\bnall64_BU\2nd_order\cosine_ranked_spearman\overview.png", "BNall_BU_64"),
 ]
 
 SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\rdm_combined.png"

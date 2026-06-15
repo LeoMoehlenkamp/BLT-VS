@@ -24,7 +24,7 @@
 # ============================================================
 
 # --- SOURCE: which previous run to inherit from ---
-SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
+SOURCE_RUN="logs/perf_logs/blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408"
 
 # --- OVERRIDES: only list what you want to change ---
 # These will replace the corresponding values from args.json.

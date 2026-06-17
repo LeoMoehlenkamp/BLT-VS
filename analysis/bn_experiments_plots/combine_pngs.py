@@ -21,7 +21,16 @@ PANELS = [
     (r"C:\Users\moehl\Logs\Final\BU\BNall_BU\bnall64_BU\2nd_order\cosine_ranked_spearman\overview.png", "BNall_BU_64"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\rdm_combined.png"
+PANELS = [
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523_cosine_ranked_spearman\overview.png", "BNnone_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242_cosine_ranked_spearman\overview.png", "BNall64_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158_cosine_ranked_spearman\overview.png", "BNnone_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005_cosine_ranked_spearman\overview.png", "BNall64_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019_cosine_ranked_spearman\overview.png", "BNnone_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408_cosine_ranked_spearman\overview.png", "BNall32_BU_ TD_Skip"),
+]
+
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\rdm_combined_ablation.png"
 
 # ============================================================
 # COMBINE

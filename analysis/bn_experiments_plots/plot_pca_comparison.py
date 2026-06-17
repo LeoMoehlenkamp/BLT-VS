@@ -6,25 +6,43 @@ at each timestep, for each model. Reveals how bottlenecks change
 representation compression across the processing hierarchy.
 """
 
+import glob
 import os
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+
+def find_npz(log_dir):
+    """Return the pca_results_streaming.npz in log_dir, or None."""
+    if os.path.isfile(log_dir):
+        return log_dir
+    pca_path = os.path.join(log_dir, "pca_results_streaming.npz")
+    if os.path.exists(pca_path):
+        return pca_path
+    # fallback: any npz with pca in name
+    matches = glob.glob(os.path.join(log_dir, "*pca*.npz"))
+    if not matches:
+        print(f"WARNING: No pca_results_streaming.npz found in {log_dir}, skipping.")
+        return None
+    return matches[0]
+
 # ============================================================
 # CONFIGURE HERE
 # ============================================================
 
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800\pca_results_streaming.npz", "BN-none"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846\pca_results_streaming.npz", "BNV1V2_BU_12"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV2V3_BU\BNV2V3_BU_8\blt_vs_bottleneck__miniecoset__ts12__bn-V2V3-8__20260329_132907\pca_results_streaming.npz", "BNV2V3_BU_8"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNall_BU\bnall64_BU\blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-64_LGNV1-64_V1V2-64_V2V3-64_V3V4-64_V4LOC-64__20260406_113212\pca_results_streaming.npz", "BNall64"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BNnone_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242", "BNall64_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158", "BNnone_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005", "BNall64_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BNnone_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408", "BNall32_BU_ TD_Skip"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison.png"
-SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference.png"
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_ablation.png"
+SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_ablation.png"
 LEVEL = 95
 N_TIMESTEPS = 12
 
@@ -44,7 +62,7 @@ TOTAL_CHANNELS = {
     "LOC": 352,
 }
 
-COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51"]
+COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51", "#9b5de5", "#f15bb5"]
 
 # ============================================================
 # LOAD DATA
@@ -52,9 +70,9 @@ COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51"]
 
 model_data = []
 
-for npz_path, label in MODELS:
-    if not os.path.exists(npz_path):
-        print(f"WARNING: Not found, skipping: {npz_path}")
+for log_dir, label in MODELS:
+    npz_path = find_npz(log_dir)
+    if npz_path is None:
         continue
 
     data = np.load(npz_path)

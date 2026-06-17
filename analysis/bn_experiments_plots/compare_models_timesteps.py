@@ -21,17 +21,19 @@ from matplotlib.ticker import MaxNLocator
 
 # Each entry: (path_to_log_dir, display_name)
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800", "BNnone_BU"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846", "BNV1V2_BU_12"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV2V3_BU\BNV2V3_BU_8\blt_vs_bottleneck__miniecoset__ts12__bn-V2V3-8__20260329_132907", "BNV2V3_BU_8"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNall_BU\bnall64_BU\blt_vs_bottleneck__miniecoset__ts12__bn-RetinaLGN-64_LGNV1-64_V1V2-64_V2V3-64_V3V4-64_V4LOC-64__20260406_113212", "BNall_BU_64"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BNnone_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242", "BNall64_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158", "BNnone_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005", "BNall64_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BNnone_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408", "BNall32_BU_ TD_Skip"),
 ]
 
-OUTPUT_PATH = r"C:\Users\moehl\Logs\temp\comparison_best_epoch"
-OUTPUT_PATH_GAIN = r"C:\Users\moehl\Logs\temp\comparison_best_epoch_normalized"
+OUTPUT_PATH = r"C:\Users\moehl\Logs\Plots_BA\comparison_best_epoch_ablation"
+OUTPUT_PATH_GAIN = r"C:\Users\moehl\Logs\Plots_BA\comparison_best_epoch_normalized_ablation"
 USE_LAST_EPOCH = False  # True = last epoch, False = best epoch
 
-COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51"]
+COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51", "#9b5de5", "#f15bb5"]
 
 
 def find_npz(log_dir):

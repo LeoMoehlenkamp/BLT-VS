@@ -5,24 +5,38 @@ Grouped bar chart: each model gets bars for Avg Δ (abs) and Avg Δ (%).
 Configure MODELS below: list of (npz_path, label) tuples.
 """
 
+import glob
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import os
 
+
+def find_npz(log_dir):
+    """Return the first loss_*.npz found in log_dir, or None."""
+    if os.path.isfile(log_dir):
+        return log_dir
+    matches = glob.glob(os.path.join(log_dir, "loss_*.npz"))
+    if not matches:
+        print(f"WARNING: No loss_*.npz found in {log_dir}, skipping.")
+        return None
+    return matches[0]
+
 # ============================================================
 # CONFIGURE HERE — add/remove models as needed
 # ============================================================
 
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800.npz", "BNnone_BU"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_192\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444\loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-192__20260317_131444.npz", "BNV1V2_BU_192"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_32\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415\loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-32__20260318_183415.npz", "BNV1V2_BU_32"),
-    (r"C:\Users\moehl\Logs\Final\BU\BNV1V2_BU\BNV1V2_BU_12\blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846\loss_blt_vs_bottleneck__miniecoset__ts12__bn-V1V2-12__20260321_053846.npz", "BNV1V2_BU_12"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BNnone_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242", "BNall64_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158", "BNnone_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005", "BNall64_BU_ TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BNnone_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408", "BNall32_BU_ TD_Skip"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\recurrence_gain_comparison.png"
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\recurrence_gain_comparison_ablation.png"
 
 # ============================================================
 # LOAD & COMPUTE
@@ -30,7 +44,11 @@ SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\recurrence_gain_comparison.png"
 
 model_results = []
 
-for npz_path, label in MODELS:
+for log_dir, label in MODELS:
+    npz_path = find_npz(log_dir)
+    if npz_path is None:
+        continue
+
     if not os.path.exists(npz_path):
         print(f"WARNING: File not found, skipping: {npz_path}")
         continue
@@ -78,7 +96,7 @@ metric_labels = ["Avg Δ (pp)", "Max Δ (pp)", "Avg Δ (%)", "Max Δ (%)"]
 n_metrics = len(metric_labels)
 n_models = len(labels)
 
-COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51"]
+COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51", "#9b5de5", "#f15bb5"]
 
 bar_width = 0.55 / n_models
 x = np.arange(n_metrics)

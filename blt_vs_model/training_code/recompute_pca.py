@@ -155,12 +155,19 @@ with torch.no_grad():
             timesteps=timesteps_to_extract,
         )
 
+        if extract_batches == 0:
+            print(f"  Activation dict areas: {list(activations.keys())}")
+            for a in activations:
+                print(f"  {a}: timesteps={sorted(activations[a].keys())}, type={type(next(iter(activations[a].values()), None))}")
+
         for area in activations:
             for t in activations[area]:
 
                 act = activations[area][t]
 
                 if act is None:
+                    if extract_batches == 0:
+                        print(f"  {area} t{t}: act is None (skipped)")
                     continue
 
                 if isinstance(act, dict):
@@ -171,12 +178,17 @@ with torch.no_grad():
                     max_val = act.abs().max().item()
                     if extract_batches == 0:
                         mean_val = act.abs().mean().item()
-                        print(f"  {area} t{t}: max={max_val:.2e}, mean={mean_val:.2e} (skipped)")
+                        print(f"  {area} t{t}: max={max_val:.2e}, mean={mean_val:.2e} (skipped, pre-signal)")
                     if max_val > threshold:
                         print(f"  ⚠ Unexpected large activation at {area} t{t}")
                     continue
 
                 key = f"{area}_t{t}"
+
+                if extract_batches == 0:
+                    max_val = act.abs().max().item()
+                    mean_val = act.abs().mean().item()
+                    print(f"  {area} t{t}: shape={list(act.shape)}, max={max_val:.2e}, mean={mean_val:.2e} (PROCESSED)")
 
                 # Spatial subsampling
                 act = act[:, :, ::2, ::2]
@@ -196,7 +208,8 @@ with torch.no_grad():
         if extract_batches >= max_extract_batches:
             break
 
-print(f"Finished accumulating covariance matrices ({extract_batches} batches).")
+print(f"\nFinished accumulating covariance matrices ({extract_batches} batches).")
+print(f"Keys in cov_mats ({len(cov_mats)}): {sorted(cov_mats.keys())}")
 
 # ============================
 # COMPUTE PCA RESULTS

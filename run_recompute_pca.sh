@@ -13,7 +13,7 @@
 # =============================================
 # CONFIGURE HERE
 # =============================================
-MODEL_NAME="blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143"
+MODEL_NAME="blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260615_185731"
 USE_BEST=1
 
 # =============================================

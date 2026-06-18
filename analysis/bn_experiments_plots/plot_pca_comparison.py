@@ -33,16 +33,13 @@ def find_npz(log_dir):
 # ============================================================
 
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BNnone_BU_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242", "BNall64_BU_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158", "BNnone_BU_ TD"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005", "BNall64_BU_ TD"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BNnone_BU_ TD_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408", "BNall32_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143", "BNnone_BU_ TD_Skip_Ecoset"),
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731", "BNall32_BU_TD_Skip_Ecoset"),
+]
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_ablation.png"
-SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_ablation.png"
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_Ecoset.png"
+SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_Ecoset.png"
 LEVEL = 95
 N_TIMESTEPS = 12
 

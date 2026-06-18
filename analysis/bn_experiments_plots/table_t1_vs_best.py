@@ -13,15 +13,11 @@ import os
 # ============================================================
 
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523.npz", "BNnone_BU_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242\loss_blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242.npz", "BNall64_BU_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158\loss_blt_vs_bottleneck__miniecoset__ts12__bnall96_BU-TD__20260421_120158.npz", "BNnone_BU_ TD"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005\loss_blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005.npz", "BNall64_BU_ TD"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019.npz", "BNnone_BU_ TD_Skip"),
-    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408\loss_blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408.npz", "BNall32_BU_ TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\loss_blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143.npz", "BNnone_BU_ TD_Skip_Ecoset"),
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\loss_blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260615_185731.npz", "BNall32_BU_TD_Skip_Ecoset"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\t1_vs_best_table.png"
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\t1_vs_best_table_ecoset.png"
 
 # ============================================================
 # LOAD DATA
@@ -74,6 +70,14 @@ table = ax.table(
 table.auto_set_font_size(False)
 table.set_fontsize(11)
 table.scale(1.0, 1.6)
+
+# Make first column wider
+table.auto_set_column_width([0, 1, 2, 3])
+for row_idx in range(len(rows) + 1):
+    table[row_idx, 0].set_width(0.45)
+for row_idx in range(len(rows) + 1):
+    for col_idx in [1, 2, 3]:
+        table[row_idx, col_idx].set_width(0.15)
 
 # Style header row
 for j in range(len(col_labels)):

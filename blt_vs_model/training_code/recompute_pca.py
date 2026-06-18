@@ -141,68 +141,75 @@ threshold = 1e-8
 extract_batches = 0
 
 max_extract_batches = 50
-print(f"\nExtracting PCA statistics ({max_extract_batches} batches, same as training)...")
+SUB_BATCH_SIZE = 32  # Process in smaller chunks to avoid OOM
+print(f"\nExtracting PCA statistics ({max_extract_batches} batches, sub-batch={SUB_BATCH_SIZE})...")
 
 with torch.no_grad():
     for images, labels in val_loader:
 
-        imgs = images.to(DEVICE)
+        # Split into sub-batches to reduce peak GPU memory
+        for sub_start in range(0, images.shape[0], SUB_BATCH_SIZE):
+            sub_imgs = images[sub_start:sub_start + SUB_BATCH_SIZE].to(DEVICE)
 
-        outputs, activations = model(
-            imgs,
-            extract_actvs=True,
-            areas=areas_to_extract,
-            timesteps=timesteps_to_extract,
-        )
+            outputs, activations = model(
+                sub_imgs,
+                extract_actvs=True,
+                areas=areas_to_extract,
+                timesteps=timesteps_to_extract,
+            )
 
-        if extract_batches == 0:
-            print(f"  Activation dict areas: {list(activations.keys())}")
-            for a in activations:
-                print(f"  {a}: timesteps={sorted(activations[a].keys())}, type={type(next(iter(activations[a].values()), None))}")
+            if extract_batches == 0 and sub_start == 0:
+                print(f"  Activation dict areas: {list(activations.keys())}")
+                for a in activations:
+                    print(f"  {a}: timesteps={sorted(activations[a].keys())}, type={type(next(iter(activations[a].values()), None))}")
 
-        for area in activations:
-            for t in activations[area]:
+            for area in activations:
+                for t in activations[area]:
 
-                act = activations[area][t]
+                    act = activations[area][t]
 
-                if act is None:
-                    if extract_batches == 0:
-                        print(f"  {area} t{t}: act is None (skipped)")
-                    continue
+                    if act is None:
+                        if extract_batches == 0 and sub_start == 0:
+                            print(f"  {area} t{t}: act is None (skipped)")
+                        continue
 
-                if isinstance(act, dict):
-                    act = next(iter(act.values()))
+                    if isinstance(act, dict):
+                        act = next(iter(act.values()))
 
-                # Skip timesteps before signal arrival
-                if area in first_signal and t < first_signal[area]:
-                    max_val = act.abs().max().item()
-                    if extract_batches == 0:
+                    # Skip timesteps before signal arrival
+                    if area in first_signal and t < first_signal[area]:
+                        max_val = act.abs().max().item()
+                        if extract_batches == 0 and sub_start == 0:
+                            mean_val = act.abs().mean().item()
+                            print(f"  {area} t{t}: max={max_val:.2e}, mean={mean_val:.2e} (skipped, pre-signal)")
+                        if max_val > threshold:
+                            print(f"  ⚠ Unexpected large activation at {area} t{t}")
+                        continue
+
+                    key = f"{area}_t{t}"
+
+                    if extract_batches == 0 and sub_start == 0:
+                        max_val = act.abs().max().item()
                         mean_val = act.abs().mean().item()
-                        print(f"  {area} t{t}: max={max_val:.2e}, mean={mean_val:.2e} (skipped, pre-signal)")
-                    if max_val > threshold:
-                        print(f"  ⚠ Unexpected large activation at {area} t{t}")
-                    continue
+                        print(f"  {area} t{t}: shape={list(act.shape)}, max={max_val:.2e}, mean={mean_val:.2e} (PROCESSED)")
 
-                key = f"{area}_t{t}"
+                    # Spatial subsampling
+                    act = act[:, :, ::2, ::2]
+                    B, C, H, W = act.shape
+                    X = act.permute(0, 2, 3, 1).reshape(-1, C).detach().float()
 
-                if extract_batches == 0:
-                    max_val = act.abs().max().item()
-                    mean_val = act.abs().mean().item()
-                    print(f"  {area} t{t}: shape={list(act.shape)}, max={max_val:.2e}, mean={mean_val:.2e} (PROCESSED)")
+                    if key not in cov_mats:
+                        cov_mats[key] = torch.zeros(C, C, device=X.device, dtype=torch.float32)
+                        sum_vecs[key] = torch.zeros(C, device=X.device, dtype=torch.float32)
+                        counts[key] = 0
 
-                # Spatial subsampling
-                act = act[:, :, ::2, ::2]
-                B, C, H, W = act.shape
-                X = act.permute(0, 2, 3, 1).reshape(-1, C).detach().float()
+                    cov_mats[key] += X.T @ X
+                    sum_vecs[key] += X.sum(dim=0)
+                    counts[key] += X.shape[0]
 
-                if key not in cov_mats:
-                    cov_mats[key] = torch.zeros(C, C, device=X.device, dtype=torch.float32)
-                    sum_vecs[key] = torch.zeros(C, device=X.device, dtype=torch.float32)
-                    counts[key] = 0
-
-                cov_mats[key] += X.T @ X
-                sum_vecs[key] += X.sum(dim=0)
-                counts[key] += X.shape[0]
+            # Free GPU memory after each sub-batch
+            del outputs, activations
+            torch.cuda.empty_cache()
 
         extract_batches += 1
         if extract_batches >= max_extract_batches:

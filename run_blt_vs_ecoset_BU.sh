@@ -144,7 +144,7 @@ echo "  Name:        $NAME"
 echo "  Start time:  $(date)"
 echo "====================================="
 
-python blt_vs_model/training_code/train_net_copy_hooks.py \
+python blt_vs_model/training_code/train_bottleneck.py \
     --network "$SRC_NETWORK" \
     --bottlenecks "$SRC_BOTTLENECKS" \
     --name "$NAME" \

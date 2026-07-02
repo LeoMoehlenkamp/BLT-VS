@@ -38,7 +38,7 @@ echo "Starting training..."
 # =============================================
 TRAIN_LOG=$(mktemp)
 
-python blt_vs_model/training_code/train_net_copy_hooks.py \
+python blt_vs_model/training_code/train_bottleneck.py \
     --network blt_vs_bottleneck \
     --bottlenecks "V1->V2:32,V2->V3:32,V3->V4:32,V4->LOC:32,V1->LGN_td:32,V2->V1_td:32,V3->V2_td:32,V4->V3_td:32,LOC->V4_td:32,V1->V4_skip:32,V4->V1_skip:32" \
     --name "blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip" \

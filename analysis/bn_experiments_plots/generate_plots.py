@@ -1,6 +1,6 @@
 """
 Standalone plot generation from saved training metrics (.npz).
-Reproduces all plots that train_net_copy_hooks.py creates after training.
+Reproduces all plots that train_bottleneck.py creates after training.
 No GPU, no model, no dataset needed — only the .npz file.
 """
 

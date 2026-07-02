@@ -29,7 +29,7 @@ nvidia-smi
 
 echo "Starting training..."
 
-python blt_vs_model/training_code/train_net_copy_hooks.py \
+python blt_vs_model/training_code/train_bottleneck.py \
     --network blt_vs_bottleneck \
     --bottlenecks "Retina->LGN:96, LGN->V1:96, V1->V2:96, V2->V3:96, V3->V4:96, V4->LOC:96, V1->V4_skip:96,V4->V1_skip:96" \
     --name "blt_vs_bottleneck__miniecoset__ts12__bn-bnall96skip" \

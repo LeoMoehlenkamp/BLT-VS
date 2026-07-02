@@ -12,7 +12,7 @@
 
 # ============================================================
 # Train ResNet50 on the SAME data / transforms as BLT-VS
-# Uses the existing train_net_copy_hooks.py with --network rn50
+# Uses train_bottleneck.py with --network rn50
 # ============================================================
 
 DATASET="miniecoset"          # ecoset | miniecoset | imagenet
@@ -55,7 +55,7 @@ echo "  Weight dec: $WEIGHT_DECAY"
 echo "  Start time: $(date)"
 echo "====================================="
 
-python blt_vs_model/training_code/train_net_copy_hooks.py \
+python blt_vs_model/training_code/train_bottleneck.py \
     --network rn50 \
     --name "$RUN_NAME" \
     --dataset_mode "$DATASET_MODE" \

@@ -35,8 +35,7 @@
 │   │   │   └── vNet.py
 │   │   ├── run_inference.py
 │   │   ├── torchinductor_lemoehlenkam
-│   │   ├── train_net_copy_hooks.py
-│   │   ├── train_net_copy.py
+│   │   ├── train_bottleneck.py
 │   │   └── train_net.py
 │   ├── transforms.py
 │   └── utils.py

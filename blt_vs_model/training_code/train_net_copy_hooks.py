@@ -106,7 +106,6 @@ parser.add_argument('--bottlenecks', type=str, default='', help='comma list like
 parser.add_argument('--grad_clipping', type=int, default=1)
 parser.add_argument('--weight_decay', type=float, default=0.0)
 parser.add_argument('--lr_patience', type=int, default=2)
-parser.add_argument('--grad_accum_steps', type=int, default=1, help='Number of mini-batches to accumulate before optimizer step')
 parser.add_argument('--dataset_path', type=str, default='', help='Override dataset base path (e.g. node-local copy). Empty = use default /share/klab/datasets/')
 parser.add_argument("--ecoset_debug_subset", action="store_true")
 parser.add_argument("--ecoset_debug_size", type=int, default=500)
@@ -119,7 +118,6 @@ parser.add_argument('--warmup_epochs', type=int, default=5, help='Number of warm
 parser.add_argument('--use_ema', type=int, default=0, help='Use Exponential Moving Average model (1=on, 0=off)')
 parser.add_argument('--ema_decay', type=float, default=0.9999, help='EMA decay factor')
 parser.add_argument('--lr_scheduler_type', type=str, default='linearfit', help='LR scheduler: linearfit | cosine')
-parser.add_argument('--gradient_checkpointing', type=int, default=0, help='Enable gradient checkpointing to reduce memory (1=on, 0=off). Trades ~30%% compute for ~3-4x memory savings.')
 
 args = parser.parse_args()
 
@@ -209,8 +207,6 @@ hyp = {
         'start_from_epoch': args.start_from_epoch # at which epoch to start training (data pulled from epoch before that)
     }
 }
-
-hyp["gradient_checkpointing"] = bool(args.gradient_checkpointing)
 
 hyp["dataset_mode"] = args.dataset_mode
 if hyp["dataset_mode"] == 2:
@@ -552,7 +548,6 @@ if __name__ == '__main__':
             dynamic_ncols=True,
             file= sys.stdout
         )
-        accum_steps = args.grad_accum_steps
         optimizer.zero_grad()
 
         def _get_rss_mb():
@@ -594,7 +589,6 @@ if __name__ == '__main__':
                     for t in range(len(outputs)-1):
                         loss = loss + criterion(outputs[t+1], targets)
                 loss = loss/len(outputs)
-                loss = loss / accum_steps  # scale loss for accumulation
 
             if _track_rss:
                 _rss_c = _get_rss_mb()  # after forward+loss
@@ -605,7 +599,7 @@ if __name__ == '__main__':
                 _rss_d = _get_rss_mb()  # after backward
 
             # --- Free computation graph and intermediate tensors immediately ---
-            train_loss_running += loss.item() * accum_steps  # undo scaling for logging
+            train_loss_running += loss.item()
             with torch.no_grad():
                 current_acc = np.mean(compute_accuracy(outputs, hard_lbls))
             train_acc_running += current_acc
@@ -633,21 +627,20 @@ if __name__ == '__main__':
                       f"fwd={_rss_c:.0f} bwd={_rss_d:.0f} cleanup={_rss_e:.0f} "
                       f"delta={_rss_e - _rss_a:.0f} MB  fds={_fd_count}")
 
-            if (step_idx + 1) % accum_steps == 0 or (step_idx + 1) == len(train_loader):
-                if args.grad_clipping:
-                    scaler.unscale_(optimizer)
-                    adaptive_gradient_clipping(net, clip_factor=0.1)
-                scaler.step(optimizer)
-                scaler.update()
-                optimizer.zero_grad()
+            if args.grad_clipping:
+                scaler.unscale_(optimizer)
+                adaptive_gradient_clipping(net, clip_factor=0.1)
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
 
-                # EMA update
-                if ema_model is not None:
-                    with torch.no_grad():
-                        net_params = (net.module if hasattr(net, 'module') else net).state_dict()
-                        for key, ema_param in ema_model.state_dict().items():
-                            model_param = net_params[key]
-                            ema_param.copy_(ema_decay * ema_param + (1.0 - ema_decay) * model_param)
+            # EMA update
+            if ema_model is not None:
+                with torch.no_grad():
+                    net_params = (net.module if hasattr(net, 'module') else net).state_dict()
+                    for key, ema_param in ema_model.state_dict().items():
+                        model_param = net_params[key]
+                        ema_param.copy_(ema_decay * ema_param + (1.0 - ema_decay) * model_param)
 
             pbar.set_postfix({
                 "loss": f"{train_loss_running / (step_idx + 1):.3f}",

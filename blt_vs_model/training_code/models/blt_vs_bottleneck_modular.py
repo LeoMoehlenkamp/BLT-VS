@@ -3,7 +3,6 @@ import torch.nn as nn # type: ignore
 import torch.nn.functional as F # type: ignore
 import numpy as np
 from tqdm import tqdm
-from torch.utils.checkpoint import checkpoint as torch_checkpoint
 """
 BLT_VS Architecture
 
@@ -98,7 +97,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         image_size=224,
         hook_type='None',
         readout_type='multi',
-        gradient_checkpointing=False,
     ):
         super(BLT_VS_ModularBottlenecks, self).__init__()  # Initialize PyTorch nn.Module
 
@@ -114,7 +112,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         self.image_size = image_size
         self.hook_type = hook_type
         self.readout_type = readout_type
-        self.gradient_checkpointing = gradient_checkpointing
         self.v1_v2_bottleneck_channels = v1_v2_bottleneck_channels
         self.bottlenecks_cfg = bottlenecks if bottlenecks is not None else {}
 
@@ -212,6 +209,12 @@ class BLT_VS_ModularBottlenecks(nn.Module):
 
             if dst == "Readout":
                 raise ValueError("Bottleneck into Readout is not supported in this setup.")
+
+            # Validate: src must be exactly one area below dst in hierarchy
+            src_idx = self.areas.index(src)
+            dst_idx = self.areas.index(dst)
+            if src_idx != dst_idx - 1:
+                raise ValueError(f"BU bottleneck '{edge}' invalid. Source must be one area below destination (got {src}[{src_idx}] -> {dst}[{dst_idx}]).")
 
             if dst in self.dst_to_edge:
                 raise ValueError(f"Multiple bottlenecks into {dst}: {self.dst_to_edge[dst]} and {edge}")
@@ -480,44 +483,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
             return self.bottlenecks[edge](x)
         return x
 
-    def _checkpointed_layer_forward(self, layer, bu_input, bu_l_input, td_input, td_l_input, bu_skip_input, td_skip_input):
-        """Wrapper for gradient-checkpointed layer forward.
-        Replaces None-valued tensor arguments with a zero-size sentinel
-        so that checkpoint() sees only Tensors, then undoes the mapping
-        inside the call."""
-        # Determine device from whichever input is available
-        _dev = None
-        for _t in (bu_input, bu_l_input, td_input, td_l_input, bu_skip_input, td_skip_input):
-            if isinstance(_t, torch.Tensor):
-                _dev = _t.device
-                break
-        if _dev is None:
-            # All inputs are None — nothing to compute
-            return None, None
-
-        _sentinel = torch.tensor(0.0, device=_dev)
-        _s = lambda x: _sentinel if x is None else x
-
-        # checkpoint needs a plain function — we use a closure
-        def _fn(bu, bu_l, td, td_l, bu_s, td_s):
-            # Restore None from zero-dim sentinels
-            _none = lambda x: None if (isinstance(x, torch.Tensor) and x.ndim == 0) else x
-            return layer(
-                bu_input=_none(bu),
-                bu_l_input=_none(bu_l),
-                td_input=_none(td),
-                td_l_input=_none(td_l),
-                bu_skip_input=_none(bu_s),
-                td_skip_input=_none(td_s),
-            )
-
-        return torch_checkpoint(
-            _fn,
-            _s(bu_input), _s(bu_l_input), _s(td_input),
-            _s(td_l_input), _s(bu_skip_input), _s(td_skip_input),
-            use_reentrant=False,
-        )
-
     def forward(
         self,
         img_input,
@@ -664,25 +629,14 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                         # -------------------------------------------------
                         # Forward through area
                         # -------------------------------------------------
-                        if self.gradient_checkpointing and self.training:
-                            bu_act, td_act = self._checkpointed_layer_forward(
-                                self.connections[area],
-                                bu_input,
-                                bu_activations_old[idx + 1],
-                                td_input,
-                                td_activations_old[idx + 1],
-                                bu_skip,
-                                td_skip,
-                            )
-                        else:
-                            bu_act, td_act = self.connections[area](
-                                bu_input=bu_input,
-                                bu_l_input=bu_activations_old[idx + 1],
-                                td_input=td_input,
-                                td_l_input=td_activations_old[idx + 1],
-                                bu_skip_input=bu_skip,
-                                td_skip_input=td_skip,
-                            )
+                        bu_act, td_act = self.connections[area](
+                            bu_input=bu_input,
+                            bu_l_input=bu_activations_old[idx + 1],
+                            td_input=td_input,
+                            td_l_input=td_activations_old[idx + 1],
+                            bu_skip_input=bu_skip,
+                            td_skip_input=td_skip,
+                        )
 
                         # Store new activations
                         bu_activations[idx + 1] = bu_act

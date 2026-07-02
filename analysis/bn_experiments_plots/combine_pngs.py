@@ -30,7 +30,12 @@ PANELS = [
     (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\2nd_order\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408_cosine_ranked_spearman\overview.png", "BNall32_BU_ TD_Skip"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\rdm_combined_ablation.png"
+PANELS = [
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\2nd_order\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143_cosine_ranked_spearman\overview.png", "BNnone_BU_ TD_Skip_Ecoset"),
+    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\2nd_order\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260615_185731_cosine_ranked_spearman\overview.png", "BNall32_BU_TD_Skip_Ecoset"),
+]
+
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\rdm_combined_Ecoset.png"
 
 # ============================================================
 # COMBINE

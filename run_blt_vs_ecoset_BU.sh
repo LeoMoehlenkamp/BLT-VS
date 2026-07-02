@@ -162,13 +162,11 @@ python blt_vs_model/training_code/train_net_copy_hooks.py \
     --learning_rate "$LR" \
     --num_workers "$NUM_WORKERS" \
     --grad_clipping "$SRC_GRAD_CLIP" \
-    --grad_accum_steps 1 \
     --weight_decay ${OVERRIDE_WEIGHT_DECAY:-0.0} \
     --lr_scheduler_type ${OVERRIDE_LR_SCHEDULER:-linearfit} \
     --warmup_epochs ${OVERRIDE_WARMUP_EPOCHS:-5} \
     --use_mixup ${OVERRIDE_MIXUP:-0.0} \
-    --use_cutmix ${OVERRIDE_CUTMIX:-0.0} \
-    --gradient_checkpointing ${OVERRIDE_GRAD_CHECK:-0}
+    --use_cutmix ${OVERRIDE_CUTMIX:-0.0}
 
 echo "====================================="
 echo "Finished: $(date)"

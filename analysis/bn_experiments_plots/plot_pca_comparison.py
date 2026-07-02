@@ -36,7 +36,6 @@ MODELS = [
     (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143", "BNnone_BU_ TD_Skip_Ecoset"),
     (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731", "BNall32_BU_TD_Skip_Ecoset"),
 ]
-]
 
 SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_Ecoset.png"
 SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_Ecoset.png"

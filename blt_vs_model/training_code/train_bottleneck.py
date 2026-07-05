@@ -867,6 +867,15 @@ if __name__ == '__main__':
     if network_name != 'blt_vs':
         print(f"\nSkipping PCA extraction (not supported for network '{network_name}').")
     else:
+        best_pth = f'{net_path}/{net_name}_BEST.pth'
+        if os.path.exists(best_pth):
+            print(f"\nLoading best checkpoint for PCA: {best_pth}")
+            best_sd = torch.load(best_pth, map_location=hyp['optimizer']['device'])
+            _pca_model = net.module if isinstance(net, nn.DataParallel) else net
+            _pca_model.load_state_dict(best_sd)
+        else:
+            print("\nWarning: _BEST.pth not found, using last-epoch model for PCA.")
+
         print("\nExtracting PCA statistics (streaming, no activation saving)...")
         _, val_loader, _, hyp = get_Dataset_loaders(hyp, ['val'])
         print("Validation batches for PCA:", len(val_loader))

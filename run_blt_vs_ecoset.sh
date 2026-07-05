@@ -43,7 +43,6 @@ OVERRIDE_LR_SCHEDULER="linearfit"   # LinearFit scheduler (cosine caused NaN, di
 OVERRIDE_WARMUP_EPOCHS="5"          # linear warmup before cosine decay
 OVERRIDE_MIXUP="0.0"                # MixUp alpha (disabled, gates still in place for BLT-VS)
 OVERRIDE_CUTMIX="0.0"               # CutMix alpha (disabled, too aggressive with cosine)
-OVERRIDE_GRAD_CHECK="1"             # Enable gradient checkpointing to save GPU memory
 
 # --- Environment setup ---
 spack load miniconda3

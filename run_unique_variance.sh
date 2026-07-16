@@ -29,7 +29,7 @@ RESNET_RDM_PKL=""
 RESNET_RDM_NPZ="analysis_outputs/resnet_rdms/resnet50_rdms.npz"
 
 # Monkey data
-MONKEY_PKL="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_mua_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_mua.pkl"
+MONKEY_PKL="/share/klab/danthes/danthes/THINGS_Drift/results/rdm/monkeyF_lfp_minithings/monkeyF-labels_filenames-sessions_0_1_2_3_4_5-rois_3-arrays_1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16-baseline_0-standardize_1-metric_correlation-neural_lfp.pkl"
 STIMULUS_CSV="/share/klab/danthes/danthes/THINGS_Drift/datasets/stimulus_information.csv"
 
 # RDM settings

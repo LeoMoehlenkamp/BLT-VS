@@ -145,9 +145,9 @@ def main():
     # --------------------------------------------------------
     # Discover all sub-layers and register hooks
     #
-    # Hook on conv layers to match the TIMM pkl format.
-    # For BasicBlock (ResNet18/34): conv1, conv2
-    # For Bottleneck (ResNet50+):   conv1, conv2, conv3
+    # Hook on the BatchNorm outputs (after conv+BN, right before ReLU).
+    # For BasicBlock (ResNet18/34): bn1, bn2
+    # For Bottleneck (ResNet50+):   bn1, bn2, bn3
     # --------------------------------------------------------
     activations = {}
 
@@ -159,20 +159,20 @@ def main():
     hook_handles = []
     layer_names = []
 
-    # 1) conv1 (stem)
-    hook_handles.append(model.conv1.register_forward_hook(make_hook("conv1")))
+    # 1) stem — hook on bn1 (after conv1+bn1, before relu)
+    hook_handles.append(model.bn1.register_forward_hook(make_hook("conv1")))
     layer_names.append("conv1")
 
-    # 2) Inside each residual block — hook on conv layers
+    # 2) Inside each residual block — hook on the BatchNorm outputs
     for stage_name in ["layer1", "layer2", "layer3", "layer4"]:
         stage = getattr(model, stage_name)
         for block_idx, block in enumerate(stage):
-            # Hook each conv layer in the block
-            for conv_name in ["conv1", "conv2", "conv3"]:
-                if hasattr(block, conv_name):
-                    full_name = f"{stage_name}.{block_idx}.{conv_name}"
-                    conv_module = getattr(block, conv_name)
-                    hook_handles.append(conv_module.register_forward_hook(make_hook(full_name)))
+            # Hook each BatchNorm layer in the block (post conv+BN)
+            for bn_name in ["bn1", "bn2", "bn3"]:
+                if hasattr(block, bn_name):
+                    full_name = f"{stage_name}.{block_idx}.{bn_name}"
+                    bn_module = getattr(block, bn_name)
+                    hook_handles.append(bn_module.register_forward_hook(make_hook(full_name)))
                     layer_names.append(full_name)
 
     # 3) fc (final fully connected layer)

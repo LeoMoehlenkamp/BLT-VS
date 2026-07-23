@@ -19,8 +19,8 @@
 
 # --- EDIT THESE ---
 USE_TRAINED_RESNET=0  # 1 = use trained checkpoint, 0 = use pretrained ImageNet weights
-MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800"
-DISPLAY_NAME="BNnone_BU"
+MODEL_NAME="blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019"
+DISPLAY_NAME="BNnone_BU_TD_Skip"
 RESNET_VARIANT="resnet50"
 RESNET_RUN_NAME="resnet50__miniecoset__20260512_150116"
 NUM_CLASSES=100

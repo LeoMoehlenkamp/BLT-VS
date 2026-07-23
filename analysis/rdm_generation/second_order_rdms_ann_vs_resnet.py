@@ -167,6 +167,8 @@ def main():
                         choices=["raw", "ranked"],
                         help="Use raw or ranked first-order RDMs")
     parser.add_argument("--plot_panels", type=int, default=1)
+    parser.add_argument("--display_name", type=str, default="",
+                        help="Override the model name shown in plot titles")
     args = parser.parse_args()
 
     os.makedirs(args.save_dir, exist_ok=True)
@@ -491,9 +493,12 @@ def main():
     bars = ax.bar(resnet_labels, best_overall, color=bar_colors, alpha=0.85)
     ax.set_xlabel("ResNet layer")
     ax.set_ylabel("Best correlation with any BLT-VS RDM")
-    _parts = model_name.split("__")
-    _short_name = _parts[3] if len(_parts) > 3 else model_name
-    _short_name = _short_name.replace("bn-", "BN").replace("-", "_")
+    if args.display_name:
+        _short_name = args.display_name
+    else:
+        _parts = model_name.split("__")
+        _short_name = _parts[3] if len(_parts) > 3 else model_name
+        _short_name = _short_name.replace("bn-", "BN").replace("-", "_")
     ax.set_title(f"Best overall {resnet_variant} vs BLT-VS – {_short_name}", pad=25)
     ax.grid(True, alpha=0.3, axis="y")
     plt.xticks(rotation=90, fontsize=max(5, min(8, 200 // max(n_layers, 1))))

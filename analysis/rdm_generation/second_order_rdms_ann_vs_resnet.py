@@ -491,7 +491,10 @@ def main():
     bars = ax.bar(resnet_labels, best_overall, color=bar_colors, alpha=0.85)
     ax.set_xlabel("ResNet layer")
     ax.set_ylabel("Best correlation with any BLT-VS RDM")
-    ax.set_title(f"Best overall {resnet_variant} vs BLT-VS – {model_name}")
+    _parts = model_name.split("__")
+    _short_name = _parts[3] if len(_parts) > 3 else model_name
+    _short_name = _short_name.replace("bn-", "BN").replace("-", "_")
+    ax.set_title(f"Best overall {resnet_variant} vs BLT-VS – {_short_name}", pad=25)
     ax.grid(True, alpha=0.3, axis="y")
     plt.xticks(rotation=90, fontsize=max(5, min(8, 200 // max(n_layers, 1))))
 

@@ -33,12 +33,16 @@ def find_npz(log_dir):
 # ============================================================
 
 MODELS = [
-    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143\blt_vs_bottleneck__ecoset__ts12__bn-none_BU-TD-Skip__20260525_153143", "BNnone_BU_ TD_Skip_Ecoset"),
-    (r"C:\Users\moehl\Logs\Final\Ecoset\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731\blt_vs_bottleneck__ecoset__ts12__bnall32_BU-TD-Skip__20260615_185731", "BNall32_BU_TD_Skip_Ecoset"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNnone_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260414_204523", "BNnone_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-Skip\BNall_BU_Skip\BNall64_BU_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-bnall64skip__20260416_130242", "BNall64_BU_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNnone_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD__20260421_120158", "BNnone_BU_TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD\BNall_BU_TD\BNall64_BU_TD\blt_vs_bottleneck__miniecoset__ts12__bnall64_BU-TD__20260422_112005", "BNall64_BU_TD"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNnone_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bn-none_BU-TD-Skip__20260423_090019", "BNnone_BU_TD_Skip"),
+    (r"C:\Users\moehl\Logs\Final\BU-TD-Skip\BNall_BU_TD_Skip\BNall32_BU_TD_Skip\blt_vs_bottleneck__miniecoset__ts12__bnall32_BU-TD-Skip__20260602_005408", "BNall32_BU_TD_Skip"),
 ]
 
-SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_Ecoset.png"
-SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_Ecoset.png"
+SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\pca_95_comparison_ablation.png"
+SAVE_PATH_DIFF = r"C:\Users\moehl\Logs\Plots_BA\pca_95_difference_ablation.png"
 LEVEL = 95
 N_TIMESTEPS = 12
 
@@ -58,7 +62,7 @@ TOTAL_CHANNELS = {
     "LOC": 352,
 }
 
-COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51", "#9b5de5", "#f15bb5"]
+COLORS = ["#264653", "#2a9d8f", "#e9c46a", "#e76f51", "#9b5de5", "#f15bb5", "#3a86ff"]
 
 # ============================================================
 # LOAD DATA
@@ -78,8 +82,8 @@ for log_dir, label in MODELS:
         dims = []
         for t in range(N_TIMESTEPS):
             key = f"{area}_t{t}_channels_{LEVEL}"
-            dims.append(int(data[key][0]) if key in data else 0)
-        area_curves[area] = np.array(dims)
+            dims.append(int(data[key][0]) if key in data else np.nan)
+        area_curves[area] = np.array(dims, dtype=float)
 
     model_data.append({"label": label, "curves": area_curves})
     print(f"Loaded: {label}")
@@ -107,6 +111,11 @@ for idx, area in enumerate(AREAS):
         ax.plot(timesteps, curve, marker="o", markersize=4, linewidth=2,
                 color=COLORS[i % len(COLORS)], label=md["label"])
 
+    # First timestep where any model has a value (skip leading NaN gap)
+    valid_ts = [t for t in range(N_TIMESTEPS)
+                if any(not np.isnan(md["curves"][area][t]) for md in model_data)]
+    first_t = valid_ts[0] if valid_ts else 0
+
     ax.axhline(total, color="gray", linestyle="--", linewidth=1, alpha=0.5)
     ax.text(N_TIMESTEPS - 0.5, total, f"max={total}", va="bottom", ha="right",
             fontsize=7, color="gray")
@@ -114,8 +123,8 @@ for idx, area in enumerate(AREAS):
     ax.set_title(area, fontsize=11, fontweight="bold")
     ax.set_xlabel("Timestep", fontsize=8)
     ax.set_ylabel(f"Channels ({LEVEL}%)", fontsize=8)
-    ax.set_xticks(timesteps)
-    ax.set_xlim(-0.3, N_TIMESTEPS - 0.7)
+    ax.set_xticks(timesteps[first_t:])
+    ax.set_xlim(first_t - 0.3, N_TIMESTEPS - 0.7)
     ax.set_ylim(bottom=0)
     ax.set_axisbelow(True)
     ax.grid(alpha=0.25)
@@ -142,31 +151,47 @@ print(f"\nSaved: {SAVE_PATH}")
 plt.close()
 
 # ============================================================
-# PLOT 2 — Difference relative to first model (BN-none)
+# PLOT 2 — Within-family bottleneck effect (BNall − BNnone)
 # ============================================================
 
-baseline = model_data[0]
-others = model_data[1:]
+by_label = {md["label"]: md for md in model_data}
+
+# (family display name, BNall model, BNnone model, color)
+FAMILIES = [
+    ("BU-Skip",     "BNall64_BU_Skip",    "BNnone_BU_Skip",    "#2a9d8f"),
+    ("BU-TD",       "BNall64_BU_TD",      "BNnone_BU_TD",      "#e76f51"),
+    ("BU-TD-Skip",  "BNall32_BU_TD_Skip", "BNnone_BU_TD_Skip", "#9b5de5"),
+]
 
 fig2, axes2 = plt.subplots(2, 4, figsize=(16, 7), sharey=False)
 axes2_flat = axes2.flatten()
 
 for idx, area in enumerate(AREAS):
     ax = axes2_flat[idx]
-    base_curve = baseline["curves"][area]
 
-    for i, md in enumerate(others):
-        diff = md["curves"][area] - base_curve
+    diff_curves = []
+    for fam_name, all_label, none_label, color in FAMILIES:
+        if all_label not in by_label or none_label not in by_label:
+            continue
+        all_curve = by_label[all_label]["curves"][area]
+        none_curve = by_label[none_label]["curves"][area]
+        diff = all_curve - none_curve
+        diff_curves.append(diff)
         ax.plot(timesteps, diff, marker="o", markersize=4, linewidth=2,
-                color=COLORS[(i + 1) % len(COLORS)], label=md["label"])
+                color=color, label=f"{fam_name}  ({all_label} − {none_label})")
+
+    # First timestep where any family has a value (skip leading NaN gap)
+    valid_ts = [t for t in range(N_TIMESTEPS)
+                if any(not np.isnan(d[t]) for d in diff_curves)]
+    first_t = valid_ts[0] if valid_ts else 0
 
     ax.axhline(0, color="gray", linestyle="--", linewidth=1, alpha=0.6)
 
     ax.set_title(area, fontsize=11, fontweight="bold")
     ax.set_xlabel("Timestep", fontsize=8)
-    ax.set_ylabel(f"Δ Channels vs {baseline['label']}", fontsize=8)
-    ax.set_xticks(timesteps)
-    ax.set_xlim(-0.3, N_TIMESTEPS - 0.7)
+    ax.set_ylabel("Δ Channels (BNall − BNnone)", fontsize=8)
+    ax.set_xticks(timesteps[first_t:])
+    ax.set_xlim(first_t - 0.3, N_TIMESTEPS - 0.7)
     ax.set_axisbelow(True)
     ax.grid(alpha=0.25)
     ax.tick_params(labelsize=7)
@@ -176,9 +201,9 @@ axes2_flat[-1].axis("off")
 for spine in axes2_flat[-1].spines.values():
     spine.set_visible(False)
 handles2, labels2 = axes2_flat[0].get_legend_handles_labels()
-axes2_flat[-1].legend(handles2, labels2, loc="center", fontsize=10, frameon=False)
+axes2_flat[-1].legend(handles2, labels2, loc="center", fontsize=9, frameon=False)
 
-fig2.suptitle(f"Δ Effective Dimensionality ({LEVEL}%) vs {baseline['label']}",
+fig2.suptitle(f"Δ Effective Dimensionality ({LEVEL}%) — Bottleneck effect within family (BNall − BNnone)",
               fontsize=13, y=0.98)
 plt.tight_layout(rect=[0, 0, 1, 0.95])
 

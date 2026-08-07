@@ -89,7 +89,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         num_classes=565,
         add_feats=100,
         bottlenecks=None,
-        v1_v2_bottleneck_channels=144,
         lateral_connections=True,
         topdown_connections=True,
         skip_connections=True,
@@ -102,7 +101,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
 
         # Store all configuration parameters inside the model object
         self.timesteps = timesteps
-        print("DEBUG: Model initialized with timesteps =", self.timesteps)
         self.num_classes = num_classes
         self.add_feats = add_feats
         self.lateral_connections = lateral_connections
@@ -112,7 +110,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         self.image_size = image_size
         self.hook_type = hook_type
         self.readout_type = readout_type
-        self.v1_v2_bottleneck_channels = v1_v2_bottleneck_channels
         self.bottlenecks_cfg = bottlenecks if bottlenecks is not None else {}
 
         # ------------------------------
@@ -162,7 +159,6 @@ class BLT_VS_ModularBottlenecks(nn.Module):
         # =====================================
         # Modular bottlenecks (edge-based) - supports ALL configured edges
         # =====================================
-        self.bottlenecks_cfg = bottlenecks if bottlenecks is not None else {}
         self.bottlenecks = nn.ModuleDict()
 
         # Map: destination area -> unique edge "A->B"
@@ -643,27 +639,7 @@ class BLT_VS_ModularBottlenecks(nn.Module):
                         td_activations[idx + 1] = td_act
 
 
-                        """
-                        # ================= SANITY CHECK 2 =================
-                        if t == 1 and area == "V2":
-                            print("\n[Sanity Check 2] V1->V2 BU shapes (after V2 update)")
-                            print("V1 BU:", None if bu_activations[2] is None else bu_activations[2].shape)
-                            print("V2 BU:", None if bu_activations[3] is None else bu_activations[3].shape)
-                        # ==================================================
 
-                        # Store new activations
-                        bu_activations[idx + 1] = bu_act
-                        td_activations[idx + 1] = td_act
-
-                        # ================= SANITY CHECK 2 (prints once when V2 first becomes available) =================
-                        if area == "V2" and bu_act is not None and not hasattr(self, "_sanity2_done"):
-                            self._sanity2_done = True
-                            print("\n[Sanity Check 2] V1 -> V2 (first time V2 updates)")
-                            print("t =", t)
-                            print("V1 input to V2 shape (bu_input):", bu_activations_old[idx].shape if bu_activations_old[idx] is not None else None)
-                            print("V2 output shape (bu_act):", bu_act.shape)
-                        # ===============================================================================================
-                        """
 
                         
                 # Move current activations to old for next timestep

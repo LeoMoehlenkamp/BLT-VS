@@ -285,17 +285,10 @@ def save_filtered_state_dict(state_dict, save_path): # because FLOP computation 
 
 if __name__ == '__main__':
 
-    print("\n==============================")
-    print("DEBUG: NEW SCRIPT VERSION ACTIVE")
-    print("==============================\n")
-
-    areas_to_extract=["Retina","LGN","V1","V2","V3","V4","LOC"]
-
     # load the dataset loaders to iterate over for training and eval
     train_loader, val_loader, _, hyp = get_Dataset_loaders(hyp,['train','val'])
 
     print("Dataset mode:", hyp["dataset_mode"])
-    #print("Number of classes:", hyp["dataset"]["n_classes"])
     print("Train dataset size:", len(train_loader.dataset))
     print("Number of train batches:", len(train_loader))
 
@@ -397,7 +390,6 @@ if __name__ == '__main__':
         net_save_path = f'{net_path}/{net_name}_epoch_{load_epoch}.pth'
         state_dict = torch.load(net_save_path)
         net.load_state_dict(state_dict)
-        # load_filtered_state_dict(net, net_save_path)
 
     # Print the number of FLOPs for one pass
     if not args.network == 'blt_vnet':
@@ -409,7 +401,6 @@ if __name__ == '__main__':
         net.train()
 
     print(net)
-    #print(net.bottlenecks)
 
     # Use DataParallel for multi-GPU training
     if torch.cuda.device_count() > 1:
@@ -464,7 +455,7 @@ if __name__ == '__main__':
         train_accuracies = []
         val_losses = []
         val_accuracies = []
-        val_accuracies_all = []   # <-- NEU: timestep-wise val acc pro epoch
+        val_accuracies_all = []
     else:
         log_data = np.load(log_path+'/loss_'+net_name+'.npz')
         train_losses = list(log_data['train_loss'][:hyp['misc']['start_from_epoch']])
@@ -472,7 +463,6 @@ if __name__ == '__main__':
         val_losses = list(log_data['val_loss'][:hyp['misc']['start_from_epoch']])
         val_accuracies = list(log_data['val_accuracies'][:hyp['misc']['start_from_epoch']])
 
-        # <-- NEU: falls vorhanden, sonst leere Liste
         if "val_accuracies_all" in log_data.files:
             val_accuracies_all = list(log_data["val_accuracies_all"][:hyp['misc']['start_from_epoch']])
         else:
@@ -482,10 +472,8 @@ if __name__ == '__main__':
     if hyp['misc']['start_from_epoch'] == 0:
         if torch.cuda.device_count() > 1: # given how dataparallel works, we need to save the module's state_dict
             save_filtered_state_dict(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
-            # torch.save(net.module.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
         else:
             save_filtered_state_dict(net.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
-            # torch.save(net.state_dict(), f'{net_path}/{net_name}_epoch_{0}.pth')
 
     print('\nTraining begins here!\n')
 

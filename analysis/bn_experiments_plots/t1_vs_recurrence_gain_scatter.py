@@ -6,9 +6,7 @@ Best epoch      = argmax over epochs of (max accuracy across timesteps).
 t1 performance  = val_accuracies_all[best_epoch, 0].
 Recurrence gain = max_t val_accuracies_all[best_epoch, :] - t1 performance.
 
-Models are grouped into bottleneck families (V1V2, V2V3, BNall), each swept
-over several ranks, plus the no-bottleneck baseline. Points within a family are
-connected (sorted by rank) to show the trajectory as the bottleneck tightens.
+Dashed diagonal lines show iso-final-performance contours (x + y = constant).
 
 Data source: loss_*.npz files containing 'val_accuracies_all' (epochs x timesteps).
 """
@@ -19,6 +17,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 # ============================================================
 # CONFIGURE HERE
@@ -26,40 +25,51 @@ import matplotlib.pyplot as plt
 
 BU_ROOT = r"C:\Users\moehl\Logs\Final\BU"
 
-# Each family: display name, color, marker, and (rank -> variant folder) builder.
-# Only ranks that actually exist on disk are used.
-FAMILIES = [
+# Individual models to show.  Each entry: display label, color, marker, variant dir.
+MODELS = [
     {
-        "name": "V1V2",
-        "color": "#2a9d8f",
+        "label": "BNnone_BU",
+        "color": "#1a5276",
         "marker": "o",
-        "parent": os.path.join(BU_ROOT, "BNV1V2_BU"),
-        "folder": lambda r: f"BNV1V2_BU_{r}",
-        "ranks": [12, 32, 64, 128, 192],
+        "dir": None,  # uses NPZ_PATH directly
+        "npz": r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800.npz",
     },
     {
-        "name": "V2V3",
-        "color": "#e76f51",
-        "marker": "s",
-        "parent": os.path.join(BU_ROOT, "BNV2V3_BU"),
-        "folder": lambda r: f"BNV2V3_BU_{r}",
-        "ranks": [8, 12, 32, 64, 128, 256],
+        "label": "BNV1V2_BU_192",
+        "color": "#17a589",
+        "marker": "o",
+        "dir": os.path.join(BU_ROOT, "BNV1V2_BU", "BNV1V2_BU_192"),
+        "npz": None,
     },
     {
-        "name": "BNall",
-        "color": "#9b5de5",
-        "marker": "^",
-        "parent": os.path.join(BU_ROOT, "BNall_BU"),
-        "folder": lambda r: f"bnall{r}_BU",
-        "ranks": [64, 96],
+        "label": "BNV1V2_BU_32",
+        "color": "#d4ac0d",
+        "marker": "o",
+        "dir": os.path.join(BU_ROOT, "BNV1V2_BU", "BNV1V2_BU_32"),
+        "npz": None,
+    },
+    {
+        "label": "BNV1V2_BU_12",
+        "color": "#e67e22",
+        "marker": "o",
+        "dir": os.path.join(BU_ROOT, "BNV1V2_BU", "BNV1V2_BU_12"),
+        "npz": None,
+    },
+    {
+        "label": "BNV2V3_BU_8",
+        "color": "#7d3c98",
+        "marker": "o",
+        "dir": os.path.join(BU_ROOT, "BNV2V3_BU", "BNV2V3_BU_8"),
+        "npz": None,
+    },
+    {
+        "label": "BNall_BU_64",
+        "color": "#e91e8c",
+        "marker": "o",
+        "dir": os.path.join(BU_ROOT, "BNall_BU", "bnall64_BU"),
+        "npz": None,
     },
 ]
-
-# No-bottleneck baseline
-BASELINE = (
-    r"C:\Users\moehl\Logs\Final\BU\BNnone_BU\blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800\loss_blt_vs_bottleneck__miniecoset__ts12__bn-none__20260316_210800.npz",
-    "BNnone",
-)
 
 SAVE_PATH = r"C:\Users\moehl\Logs\Plots_BA\t1_vs_recurrence_gain_scatter.png"
 
@@ -87,35 +97,19 @@ def t1_and_gain_at_best_epoch(npz_path):
 # LOAD & COMPUTE
 # ============================================================
 
-family_points = {}  # name -> list of (rank, t1, gain)
-for fam in FAMILIES:
-    pts = []
-    for r in fam["ranks"]:
-        variant_dir = os.path.join(fam["parent"], fam["folder"](r))
-        if not os.path.isdir(variant_dir):
-            print(f"WARNING: missing folder {variant_dir}, skipping")
-            continue
-        npz_path = find_loss_npz(variant_dir)
-        if npz_path is None:
-            print(f"WARNING: no loss_*.npz in {variant_dir}, skipping")
-            continue
-        res = t1_and_gain_at_best_epoch(npz_path)
-        if res is None:
-            print(f"WARNING: no val_accuracies_all in {npz_path}, skipping")
-            continue
-        t1_acc, gain = res
-        pts.append((r, t1_acc, gain))
-        print(f"{fam['name']}-{r}: t1={t1_acc:.2f}%, gain={gain:.2f}pp")
-    pts.sort(key=lambda x: x[0])  # sort by rank
-    family_points[fam["name"]] = pts
-
-# Baseline
-base_pt = None
-if os.path.exists(BASELINE[0]):
-    res = t1_and_gain_at_best_epoch(BASELINE[0])
-    if res is not None:
-        base_pt = res
-        print(f"{BASELINE[1]}: t1={res[0]:.2f}%, gain={res[1]:.2f}pp")
+model_points = []  # list of (label, color, marker, t1, gain)
+for m in MODELS:
+    npz_path = m["npz"] if m["npz"] else find_loss_npz(m["dir"])
+    if npz_path is None or not os.path.exists(npz_path):
+        print(f"WARNING: could not find npz for {m['label']}, skipping")
+        continue
+    res = t1_and_gain_at_best_epoch(npz_path)
+    if res is None:
+        print(f"WARNING: no val_accuracies_all in {npz_path}, skipping")
+        continue
+    t1_acc, gain = res
+    model_points.append((m["label"], m["color"], m["marker"], t1_acc, gain))
+    print(f"{m['label']}: t1={t1_acc:.2f}%, gain={gain:.2f}pp")
 
 # ============================================================
 # PLOT
@@ -123,40 +117,65 @@ if os.path.exists(BASELINE[0]):
 
 fig, ax = plt.subplots(figsize=(9, 6.5))
 
-for fam in FAMILIES:
-    pts = family_points.get(fam["name"], [])
-    if not pts:
-        continue
-    xs = [p[1] for p in pts]
-    ys = [p[2] for p in pts]
-
-    # Faint trajectory line (rank decreasing = tighter bottleneck)
-    ax.plot(xs, ys, color=fam["color"], alpha=0.35, linewidth=1.5, zorder=2)
-    ax.scatter(xs, ys, s=130, color=fam["color"], marker=fam["marker"],
-               edgecolor="black", linewidth=0.8, zorder=3, label=fam["name"])
-
-    for r, x, y in pts:
-        ax.annotate(str(r), (x, y), textcoords="offset points",
-                    xytext=(7, 4), fontsize=8, color=fam["color"], fontweight="bold")
-
-# Baseline point
-if base_pt is not None:
-    ax.scatter(base_pt[0], base_pt[1], s=220, color="black", marker="*",
-               edgecolor="white", linewidth=0.8, zorder=4, label="BNnone (baseline)")
-    ax.annotate("none", (base_pt[0], base_pt[1]), textcoords="offset points",
-                xytext=(8, -12), fontsize=9, color="black", fontweight="bold")
+for label, color, marker, x, y in model_points:
+    ax.scatter(x, y, s=180, color=color, marker=marker,
+               edgecolor="black", linewidth=0.8, zorder=3, label=label)
+    ax.annotate(label, (x, y), textcoords="offset points",
+                xytext=(9, 4), fontsize=8, color=color, fontweight="bold")
 
 ax.set_xlabel("Readout timestep-1 accuracy (%)", fontsize=12)
 ax.set_ylabel("Recurrence gain (best timestep - t1, pp)", fontsize=12)
 ax.set_title("First-timestep performance vs. recurrence gain\n"
-             "(at best validation-accuracy epoch; numbers = bottleneck rank)",
+             "(at best validation-accuracy epoch)",
              fontsize=13, fontweight="bold")
 ax.grid(True, alpha=0.3)
 ax.set_axisbelow(True)
-ax.legend(fontsize=9, loc="upper right", title="Bottleneck family")
+
+# --- iso-performance diagonals (x + y = final_acc = constant) ---
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
+
+fp_min = xlim[0] + ylim[0]
+fp_max = xlim[1] + ylim[1]
+fp_step = 2  # percentage points between each diagonal
+fp_start = int(np.ceil(fp_min / fp_step)) * fp_step
+fp_vals = list(range(fp_start, int(np.floor(fp_max / fp_step)) * fp_step + 1, fp_step))
+
+for fp in fp_vals:
+    ax.axline((xlim[0], fp - xlim[0]), slope=-1,
+              color="gray", alpha=0.4, linewidth=0.9,
+              linestyle="--", zorder=1)
+    x_entries = []
+    if ylim[0] <= fp - xlim[0] <= ylim[1]:
+        x_entries.append(xlim[0])
+    if xlim[0] <= fp - ylim[0] <= xlim[1]:
+        x_entries.append(fp - ylim[0])
+    if ylim[0] <= fp - xlim[1] <= ylim[1]:
+        x_entries.append(xlim[1])
+    if xlim[0] <= fp - ylim[1] <= xlim[1]:
+        x_entries.append(fp - ylim[1])
+    if len(x_entries) >= 2:
+        x_mid = (x_entries[0] + x_entries[-1]) / 2
+        y_mid = fp - x_mid
+        ax.text(x_mid, y_mid, f"{fp}%", fontsize=8, color="dimgray",
+                ha="center", va="center", clip_on=True,
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.7),
+                zorder=1)
+
+ax.set_xlim(xlim)
+ax.set_ylim(ylim)
+
+# Build legend: one entry per model + one entry for the diagonal lines
+handles, labels = ax.get_legend_handles_labels()
+diag_handle = Line2D([0], [0], color="gray", alpha=0.6, linewidth=1.2,
+                     linestyle="--", label="Equal final accuracy (t1 + gain)")
+ax.legend(handles=handles + [diag_handle],
+          labels=labels + ["Equal final accuracy (t1 + gain)"],
+          fontsize=9, loc="upper right")
 
 plt.tight_layout()
 os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
 plt.savefig(SAVE_PATH, dpi=300, bbox_inches="tight")
 print(f"Saved: {SAVE_PATH}")
 plt.close()
+
